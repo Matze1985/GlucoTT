@@ -5,11 +5,7 @@
    #AutoIt3Wrapper_Res_Fileversion=0.5.1.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
-<<<<<<< HEAD
    #AutoIt3Wrapper_Res_Field=E-Mail|
-=======
-   #AutoIt3Wrapper_Res_Field=E-Mail|@
->>>>>>> eca2bd3a509a887186f02a320f4670d184fb38dd
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <WinHttp.au3>
 #include <MsgBoxConstants.au3>
