@@ -2,10 +2,10 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=0.5.0.0
+   #AutoIt3Wrapper_Res_Fileversion=0.5.1.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
-   #AutoIt3Wrapper_Res_Field=E-Mail|info@crazyinfo.de
+   #AutoIt3Wrapper_Res_Field=E-Mail|
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <WinHttp.au3>
 #include <MsgBoxConstants.au3>
@@ -25,30 +25,30 @@ If _Singleton($sTitle, 1) = 0 Then
    Exit
 EndIf
 
+; Settings file location
+Local $sFilePath = @ScriptDir & "\Settings.txt"
+
+; Open the file for reading and store the handle to a variable.
+Local $hFileOpen = FileOpen($sFilePath, $FO_READ)
+If $hFileOpen = -1 Then
+   MsgBox($MB_ICONERROR, "Error", "An error occurred when reading the file.")
+   Exit
+EndIf
+
+; Definition: Settings
+Local $sDomain = FileReadLine($hFileOpen, 3)
+Local $sDesktopW = FileReadLine($hFileOpen, Int(7))
+Local $sDesktopH = FileReadLine($hFileOpen, Int(11))
+Local $sInterval = FileReadLine($hFileOpen, Int(15))
+Local $sReadOption = FileReadLine($hFileOpen, 19)
+Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
+Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
+Local $sPage = "/api/v1/entries/sgv?count=1"
+
+; Initialize and get session handle
+Local $hOpen = _WinHttpOpen()
+
 While 1
-   ; Settings file location
-   Local $sFilePath = @ScriptDir & "\Settings.txt"
-
-   ; Open the file for reading and store the handle to a variable.
-   Local $hFileOpen = FileOpen($sFilePath, $FO_READ)
-   If $hFileOpen = -1 Then
-      MsgBox($MB_ICONERROR, "Error", "An error occurred when reading the file.")
-	  Exit
-   EndIf
-
-   ; Definition: Settings
-   Local $sDomain = FileReadLine($hFileOpen, 3)
-   Local $sDesktopW = FileReadLine($hFileOpen, Int(7))
-   Local $sDesktopH = FileReadLine($hFileOpen, Int(11))
-   Local $sInterval = FileReadLine($hFileOpen, Int(15))
-   Local $sReadOption = FileReadLine($hFileOpen, 19)
-   Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
-   Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
-   Local $sPage = "/api/v1/entries/sgv?count=1"
-
-   ; Initialize and get session handle
-   Local $hOpen = _WinHttpOpen()
-
    ; Get connection handle
    Local $hConnect = _WinHttpConnect($hOpen, $sDomain)
 
