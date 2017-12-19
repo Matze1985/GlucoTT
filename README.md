@@ -1,5 +1,7 @@
 # GlucoTT
-A simple discrete glucose tooltip for Nightscout under Windows!
+A simple discrete glucose tooltip for Nightscout under Windows
+
+![Example 1](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_1.PNG)
 
 The script use the included UDF WinHTTP function (https://github.com/dragana-r/autoit-winhttp)
 
