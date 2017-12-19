@@ -5,7 +5,7 @@
    #AutoIt3Wrapper_Res_Fileversion=0.5.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
-   #AutoIt3Wrapper_Res_Field=E-Mail|info@crazyinfo.de
+   #AutoIt3Wrapper_Res_Field=E-Mail|@
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <WinHttp.au3>
 #include <MsgBoxConstants.au3>
