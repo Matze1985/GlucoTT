@@ -79,7 +79,6 @@ While 1
 
 	; Make a SimpleSSL request
 	Local $hRequestSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPage)
-	Local $hRequestSSLv = _WinHttpSimpleSendSSLRequest($hConnect, Default, "")
 
 	; Read RequestSSL
 	Local $sReturned = _WinHttpSimpleReadData($hRequestSSL)
