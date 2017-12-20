@@ -11,3 +11,5 @@ The script use the included UDF WinHTTP function (https://github.com/dragana-r/a
 * Please save all general settings in "Settings.txt" in the ScriptDir.
 
 The App is in a BETA state, when you find errors, please write a ticket!
+
+## [**Download**](https://github.com/Matze1985/GlucoTT/releases)
