@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=Icon.ico
 #AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-#AutoIt3Wrapper_Res_Fileversion=0.5.1.0
+#AutoIt3Wrapper_Res_Fileversion=0.6.0.0
 #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
 #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -13,17 +13,8 @@
 #include <Misc.au3>
 #include <StringConstants.au3>
 
-TrayItemSetText($TRAY_ITEM_EXIT, "Close app") ; Set the text of the default 'Exit' item.
-TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
-
 ; App title
 Local $sTitle = "GlucoTT"
-
-; Check for another instance of this program
-If _Singleton($sTitle, 1) = 0 Then
-	MsgBox(16, "Error", "Another instance of this program is already running.")
-	Exit
-EndIf
 
 ; Settings file location
 Local $sFilePath = @ScriptDir & "\Settings.txt"
@@ -32,6 +23,15 @@ Local $sFilePath = @ScriptDir & "\Settings.txt"
 Local $hFileOpen = FileOpen($sFilePath, $FO_READ)
 If $hFileOpen = -1 Then
 	MsgBox($MB_ICONERROR, "Error", "An error occurred when reading the file.")
+	Exit
+EndIf
+
+TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
+TrayItemSetText($TRAY_ITEM_EXIT, "Close app") ; Set the text of the default 'Exit' item.
+
+; Check for another instance of this program
+If _Singleton($sTitle, 1) = 0 Then
+	MsgBox(16, "Error", "Another instance of this program is already running.")
 	Exit
 EndIf
 
@@ -58,9 +58,9 @@ If Not $checkDomain Then
 	Exit
 EndIf
 
-Local $checkReadOption = StringRegExp($sDomain, '^$|[mmol/l]', $STR_REGEXPMATCH)
-If Not $checkDomain Then
-	MsgBox($MB_ICONERROR, "Error", "Wrong read option, empty or mmol / l valid!")
+Local $checkReadOption = StringRegExp($sReadOption, '^(|mmol\/l)$', $STR_REGEXPMATCH)
+If Not $checkReadOption Then
+	MsgBox($MB_ICONERROR, "Error", "Wrong read option!" & @CRLF & "Use empty for mg/dl or use mmol/l in the field as read option!")
 	Exit
 EndIf
 
@@ -90,25 +90,25 @@ While 1
 
 	; TrendArrows
 	If StringInStr($sText, "DoubleUp") Then
-		$sTrend = "⇈"
+		$iTrend = "⇈"
 	EndIf
 	If StringInStr($sText, "Flat") Then
-		$sTrend = "→︎"
+		$iTrend = "→︎"
 	EndIf
 	If StringInStr($sText, "SingleUp") Then
-		$sTrend = "↑"
+		$iTrend = "↑"
 	EndIf
 	If StringInStr($sText, "FortyFiveUp") Then
-		$sTrend = "↗"
+		$iTrend = "↗"
 	EndIf
 	If StringInStr($sText, "FortyFiveDown") Then
-		$sTrend = "↘"
+		$iTrend = "↘"
 	EndIf
 	If StringInStr($sText, "SingleDown") Then
-		$sTrend = "↓"
+		$iTrend = "↓"
 	EndIf
 	If StringInStr($sText, "DoubleDown") Then
-		$sTrend = "⇊"
+		$iTrend = "⇊"
 	EndIf
 
 	; Check mmol/l option
@@ -121,9 +121,9 @@ While 1
 	EndIf
 
 	If $iGlucoseResult < $sAlertLow Or $iGlucoseResult > $sAlertHigh Then
-		ToolTip($iGlucoseResult & " " & $sTrend, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $sTitle, 2, 2)
+		ToolTip($iGlucoseResult & " " & $iTrend, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $sTitle, 2, 2)
 	Else
-		ToolTip($iGlucoseResult & " " & $sTrend, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $sTitle, 1, 2)
+		ToolTip($iGlucoseResult & " " & $iTrend, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $sTitle, 1, 2)
 	EndIf
 	Sleep($sInterval)
 WEnd
