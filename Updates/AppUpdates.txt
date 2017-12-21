@@ -1,0 +1,7 @@
+[UpdateTest.exe]
+version=1.0.1.4
+date=2014/06/27 14:55
+Filesize=490496
+CRC=3AD5DD3E
+download=https://github.com/Matze1985/GlucoTT/tree/master/Updates/GlucoTT.exe?raw=true
+changes=https://github.com/Matze1985/GlucoTT/tree/master/Updates/ChangeHistory.txt?raw=true
