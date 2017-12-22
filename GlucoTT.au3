@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=Icon.ico
 #AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-#AutoIt3Wrapper_Res_Fileversion=0.6.0.0
+#AutoIt3Wrapper_Res_Fileversion=0.8.0.0
 #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
 #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -12,9 +12,45 @@
 #include <TrayConstants.au3>
 #include <Misc.au3>
 #include <StringConstants.au3>
+#include <InetConstants.au3>
 
 ; App title
 Local $sTitle = "GlucoTT"
+
+; Delete existing 'update files'
+Local $iFileExists = FileExists(@ScriptDir & "\Update.*")
+If $iFileExists Then
+	$CMD = "del Update.*"
+	RunWait(@ComSpec & " /c " & $CMD)
+EndIf
+
+; Check for a new version
+Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
+Local $sFileNewVersion = InetRead("https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Version.txt")
+
+If Number($sFileNewVersion) > Number($sFileVersion) Then
+	Switch MsgBox($MB_YESNO, "Update", "New version available!" & @CRLF & @CRLF & "Download now?")
+		Case $IDYES
+			; Save the downloaded file to folder
+			Local $sDownloadExeFilePath = (@ScriptDir & "\Update.exe")
+			Local $sDownloadCmdFilePath = (@ScriptDir & "\Update.bat")
+
+			; Download the files 'INET_FORCERELOAD'
+			Local $hDownloadExe = InetGet("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.exe?raw=true", $sDownloadExeFilePath, $INET_FORCERELOAD)
+			Local $hDownloadCmd = InetGet("https://github.com/Matze1985/GlucoTT/blob/master/Update.bat?raw=true", $sDownloadCmdFilePath, $INET_FORCERELOAD)
+
+			; Close the handle returned by InetGet.
+			InetClose($hDownloadExe)
+			InetClose($hDownloadCmd)
+
+			; Display details about the total number of bytes read and the filesize.
+			MsgBox($MB_OK, "Info", "Download completed, the application must be restarted!")
+
+			; Run cmd script
+			Run($sDownloadCmdFilePath, "", @SW_SHOWDEFAULT)
+			Exit
+	EndSwitch
+EndIf
 
 ; Settings file location
 Local $sFilePath = @ScriptDir & "\Settings.txt"
@@ -43,6 +79,8 @@ Local $sInterval = FileReadLine($hFileOpen, Int(15))
 Local $sReadOption = FileReadLine($hFileOpen, 19)
 Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
 Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
+
+; API-Page
 Local $sPage = "/api/v1/entries/sgv?count=1"
 
 ; ErrorHandling
