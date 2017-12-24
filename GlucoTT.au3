@@ -28,7 +28,7 @@ EndIf
 ; Check for a new version
 Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
 Local $sFileNewVersion = InetRead("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.au3")
-Local $sFileCompareVersion = StringRegExp ($sFileNewVersion, $sFileVersion, $STR_REGEXPMATCH)
+Local $sFileCompareVersion = StringRegExp($sFileNewVersion, $sFileVersion, $STR_REGEXPMATCH)
 
 ; Returns 0 (no match)
 If $sFileCompareVersion <> 1 Then
