@@ -1,5 +1,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=Icon.ico
+#AutoIt3Wrapper_Compression=4
 #AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
 #AutoIt3Wrapper_Res_Fileversion=0.8.0.0
@@ -10,9 +11,9 @@
 #include <MsgBoxConstants.au3>
 #include <FileConstants.au3>
 #include <TrayConstants.au3>
-#include <Misc.au3>
 #include <StringConstants.au3>
 #include <InetConstants.au3>
+#include <Misc.au3>
 
 ; App title
 Local $sTitle = "GlucoTT"
@@ -26,9 +27,14 @@ EndIf
 
 ; Check for a new version
 Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
-Local $sFileNewVersion = InetRead("https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Version.txt")
+Local $sFileNewVersion = InetRead("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.au3")
+Local $sFileCompareVersion = StringRegExp ($sFileNewVersion, $sFileVersion, $STR_REGEXPMATCH)
 
-If Number($sFileNewVersion) > Number($sFileVersion) Then
+ConsoleWrite($sFileVersion & "|")
+ConsoleWrite($sFileNewVersion)
+
+; Returns 0 (no match)
+If $sFileCompareVersion <> 1 Then
 	Switch MsgBox($MB_YESNO, "Update", "New version available!" & @CRLF & @CRLF & "Download now?")
 		Case $IDYES
 			; Save the downloaded file to folder
