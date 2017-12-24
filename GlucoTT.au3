@@ -30,9 +30,6 @@ Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
 Local $sFileNewVersion = InetRead("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.au3")
 Local $sFileCompareVersion = StringRegExp ($sFileNewVersion, $sFileVersion, $STR_REGEXPMATCH)
 
-ConsoleWrite($sFileVersion & "|")
-ConsoleWrite($sFileNewVersion)
-
 ; Returns 0 (no match)
 If $sFileCompareVersion <> 1 Then
 	Switch MsgBox($MB_YESNO, "Update", "New version available!" & @CRLF & @CRLF & "Download now?")
