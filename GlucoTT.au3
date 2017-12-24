@@ -46,7 +46,6 @@ If $sFileCompareVersion <> 1 Then
 			InetClose($hDownloadExe)
 			InetClose($hDownloadCmd)
 
-			; Display details about the total number of bytes read and the filesize.
 			MsgBox($MB_OK, "Info", "Download completed, the application must be restarted!")
 
 			; Run cmd script
