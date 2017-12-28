@@ -32,6 +32,7 @@ Func _CheckConnection()
    $dData = _GetIP()
    If $dData == -1 Then
       MsgBox($MB_ICONERROR, "Error", "Not working connection!")
+	  Exit
    EndIf
 EndFunc
 
@@ -46,8 +47,8 @@ Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
 Local $sFileNewVersion = InetRead("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.au3")
 Local $sFileCompareVersion = StringRegExp($sFileNewVersion, $sFileVersion, $STR_REGEXPMATCH)
 
-; Returns 0 (no match)
-If $sFileCompareVersion == 0 Then
+; Check version
+If $sFileCompareVersion <> 1 Then
    Switch MsgBox($MB_YESNO, "Update", "New version for " & $sTitle & " available!" & @CRLF & @CRLF & "Download now?")
       Case $IDYES
          ; Save the downloaded file to folder
