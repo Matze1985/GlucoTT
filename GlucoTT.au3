@@ -44,8 +44,8 @@ If $iFileExists Then
 EndIf
 
 Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
-Local $sFileReadVersion = InetRead("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.au3")
-Local $sFileCompareVersion = StringRegExp($sFileReadVersion, $sFileVersion, $STR_REGEXPMATCH)
+Local $sFileReadVersion = InetRead("https://raw.githubusercontent.com/Matze1985/GlucoTT/master/GlucoTT.au3")
+Local $sFileCompareVersion = StringRegExp($sFileReadVersion, "(" & $sFileVersion & ")", $STR_REGEXPMATCH)
 
 ; Check version (If no match, then make a update)
 If $sFileCompareVersion = 0 Then
