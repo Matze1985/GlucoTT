@@ -3,7 +3,7 @@
    #AutoIt3Wrapper_Compression=4
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=0.9.0.0
+   #AutoIt3Wrapper_Res_Fileversion=1.0.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -32,7 +32,7 @@ Func _CheckConnection()
    $dData = _GetIP()
    If $dData == -1 Then
       MsgBox($MB_ICONERROR, "Error", "Not working connection!")
-	  Exit
+      Exit
    EndIf
 EndFunc
 
@@ -44,11 +44,11 @@ If $iFileExists Then
 EndIf
 
 Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
-Local $sFileNewVersion = InetRead("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.au3")
-Local $sFileCompareVersion = StringRegExp($sFileNewVersion, $sFileVersion, $STR_REGEXPMATCH)
+Local $sFileReadVersion = InetRead("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.au3")
+Local $sFileCompareVersion = StringRegExp($sFileReadVersion, $sFileVersion, $STR_REGEXPMATCH)
 
-; Check version
-If $sFileCompareVersion <> 1 Then
+; Check version (If no match, then make a update)
+If $sFileCompareVersion = 0 Then
    Switch MsgBox($MB_YESNO, "Update", "New version for " & $sTitle & " available!" & @CRLF & @CRLF & "Download now?")
       Case $IDYES
          ; Save the downloaded file to folder
