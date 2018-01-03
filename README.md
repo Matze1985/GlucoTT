@@ -14,3 +14,5 @@ When you find errors, please write a ticket!
 
 ## Releases
 [**Download**](https://github.com/Matze1985/GlucoTT/releases)
+
+[![Gitter](https://badges.gitter.im/Matze1985/GlucoTT.svg)](https://gitter.im/Matze1985/GlucoTT?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
