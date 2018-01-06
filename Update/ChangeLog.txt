@@ -1,0 +1,8 @@
+ChangeLog
+
+Summarized history of the changes:
+
+v1.1.0.0 (06 January, 2018)
+    Added: Better connection check
+    Added: Display glucose for openLibreReader-ios-blueReader
+    Added: UDF for updating GlucoTT (https://www.autoitscript.com/forum/topic/162107-checkupdate-autoupdate-a-running-script-or-exe-over-the-web/)

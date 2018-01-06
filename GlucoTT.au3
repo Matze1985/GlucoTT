@@ -14,6 +14,7 @@
 #include <InetConstants.au3>
 #include <Misc.au3>
 #include <INet.au3>
+#include <CheckUpdate.au3>
 
 ; App title
 Local $sTitle = "GlucoTT"
@@ -24,14 +25,10 @@ If _Singleton($sTitle, 1) = 0 Then
    Exit
 EndIf
 
-Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
-Local $sFileReadVersion = InetRead("https://raw.githubusercontent.com/Matze1985/GlucoTT/master/GlucoTT.au3")
-Local $sFileCompareVersion = StringRegExp($sFileReadVersion, "(" & $sFileVersion & ")", $STR_REGEXPMATCH)
-Local $sCheckConnection = StringRegExp($sFileReadVersion, "([A-Za-z0-9])", $STR_REGEXPMATCH)
-
 ; Check internet connection on Start/Loop
 Func _CheckConnection()
    Local $dData
+   Local $sCheckConnection = StringRegExp("https://raw.githubusercontent.com/Matze1985/GlucoTT/master/GlucoTT.au3", "([A-Za-z0-9])", $STR_REGEXPMATCH)
 
    $dData = _GetIP()
    If $dData == -1 Or $sCheckConnection = 0 Then
@@ -40,36 +37,9 @@ Func _CheckConnection()
    EndIf
 EndFunc
 
-; Delete existing 'update files'
-Local $iFileExists = FileExists(@ScriptDir & "\Update.*")
-If $iFileExists Then
-   $CMD = "del Update.*"
-   RunWait(@ComSpec & " /c " & $CMD)
-EndIf
-
-; Check version (If no match, then make a update)
-If $sFileCompareVersion = 0 Then
-   Switch MsgBox($MB_YESNO, "Update", "New version for " & $sTitle & " available!" & @CRLF & @CRLF & "Download now?")
-      Case $IDYES
-         ; Save the downloaded file to folder
-         Local $sDownloadExeFilePath = (@ScriptDir & "\Update.exe")
-         Local $sDownloadCmdFilePath = (@ScriptDir & "\Update.bat")
-
-         ; Download the files 'INET_FORCERELOAD'
-         Local $hDownloadExe = InetGet("https://github.com/Matze1985/GlucoTT/blob/master/GlucoTT.exe?raw=true", $sDownloadExeFilePath, $INET_FORCERELOAD)
-         Local $hDownloadCmd = InetGet("https://github.com/Matze1985/GlucoTT/blob/master/Update.bat?raw=true", $sDownloadCmdFilePath, $INET_FORCERELOAD)
-
-         ; Close the handle returned by InetGet.
-         InetClose($hDownloadExe)
-         InetClose($hDownloadCmd)
-
-         MsgBox($MB_OK, "Info", "Download completed, the application must be restarted!")
-
-         ; Run cmd script
-         Run($sDownloadCmdFilePath, "", @SW_SHOWDEFAULT)
-         Exit
-   EndSwitch
-EndIf
+; Check for updates
+CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
+If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " @error "  & @error & @CRLF)
 
 ; Settings file location
 Local $sFilePath = @ScriptDir & "\Settings.txt"
