@@ -1,11 +1,10 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-   #AutoIt3Wrapper_Icon=Icon.ico
-   #AutoIt3Wrapper_Compression=4
-   #AutoIt3Wrapper_UseX64=n
-   #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.0.0.0
-   #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
-   #AutoIt3Wrapper_Res_Language=1031
+#AutoIt3Wrapper_Icon=Icon.ico
+#AutoIt3Wrapper_UseX64=n
+#AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.0
+#AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
+#AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <WinHttp.au3>
 #include <MsgBoxConstants.au3>
@@ -25,12 +24,17 @@ If _Singleton($sTitle, 1) = 0 Then
    Exit
 EndIf
 
+Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
+Local $sFileReadVersion = InetRead("https://raw.githubusercontent.com/Matze1985/GlucoTT/master/GlucoTT.au3")
+Local $sFileCompareVersion = StringRegExp($sFileReadVersion, "(" & $sFileVersion & ")", $STR_REGEXPMATCH)
+Local $sCheckConnection = StringRegExp($sFileReadVersion, "([A-Za-z0-9])", $STR_REGEXPMATCH)
+
 ; Check internet connection on Start/Loop
 Func _CheckConnection()
    Local $dData
 
    $dData = _GetIP()
-   If $dData == -1 Then
+   If $dData == -1 Or $sCheckConnection = 0 Then
       MsgBox($MB_ICONERROR, "Error", "Not working connection!")
       Exit
    EndIf
@@ -42,10 +46,6 @@ If $iFileExists Then
    $CMD = "del Update.*"
    RunWait(@ComSpec & " /c " & $CMD)
 EndIf
-
-Local $sFileVersion = FileGetVersion(@ScriptDir & "\" & $sTitle & ".exe")
-Local $sFileReadVersion = InetRead("https://raw.githubusercontent.com/Matze1985/GlucoTT/master/GlucoTT.au3")
-Local $sFileCompareVersion = StringRegExp($sFileReadVersion, "(" & $sFileVersion & ")", $STR_REGEXPMATCH)
 
 ; Check version (If no match, then make a update)
 If $sFileCompareVersion = 0 Then
@@ -137,7 +137,7 @@ While 1
    Local $sReturned = _WinHttpSimpleReadData($hRequestSSL)
 
    ; Match result variables
-   Local $sText = StringRegExpReplace($sReturned, "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	])", " ")
+   Local $sText = StringRegExpReplace($sReturned, "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	]|(openLibreReader-ios-blueReader-[0-9])|(\.[0-9]{1,4}))", " ")
    Local $sGlucose = StringRegExpReplace($sText, "[^0-9]+", "")
 
    ; TrendArrows
