@@ -11,13 +11,18 @@
 #include <FileConstants.au3>
 #include <TrayConstants.au3>
 #include <StringConstants.au3>
-#include <InetConstants.au3>
-#include <Misc.au3>
 #include <INet.au3>
 #include <CheckUpdate.au3>
 
 ; App title
 Local $sTitle = "GlucoTT"
+
+; Delete existing update file
+Local $iFileExists = FileExists(@ScriptDir & "\GlucoTT_*")
+If $iFileExists Then
+	$CMD = "del GlucoTT_*"
+	RunWait(@ComSpec & " /c " & $CMD)
+EndIf
 
 ; Check for another instance of this program
 If _Singleton($sTitle, 1) = 0 Then

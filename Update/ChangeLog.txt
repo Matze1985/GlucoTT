@@ -2,7 +2,8 @@ ChangeLog
 
 Summarized history of the changes:
 
-v1.1.0.0 (06 January, 2018)
+v1.1.0.0 (07 January, 2018)
     Added: Better connection check
     Added: Display glucose for openLibreReader-ios-blueReader
     Added: UDF for updating GlucoTT (https://www.autoitscript.com/forum/topic/162107-checkupdate-autoupdate-a-running-script-or-exe-over-the-web/)
+    Added: Include ExtMsgBox.au3 in CheckUpdate.au3 for Update-MsgBox buttons (https://www.autoitscript.com/forum/topic/109096-extended-message-box-new-version-20-sep-17/)
