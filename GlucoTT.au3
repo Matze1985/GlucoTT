@@ -17,13 +17,6 @@
 ; App title
 Local $sTitle = "GlucoTT"
 
-; Delete existing update file
-Local $iFileExists = FileExists(@ScriptDir & "\GlucoTT_*")
-If $iFileExists Then
-	$CMD = "del GlucoTT_*"
-	RunWait(@ComSpec & " /c " & $CMD)
-EndIf
-
 ; Check for another instance of this program
 If _Singleton($sTitle, 1) = 0 Then
    MsgBox($MB_ICONERROR, "Error", "Another instance of this program is already running.")
