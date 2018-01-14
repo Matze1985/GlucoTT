@@ -2,6 +2,11 @@ ChangeLog
 
 Summarized history of the changes:
 
+v1.2.0.0 (14 January, 2018)
+    Added: New TrayMenu entry to Nightscout website
+    Change: Fix regex for Nightscout URL in settings file (Only https allow!)
+    Change: Change all default Message Boxes to Extended Message Boxes from UDF
+
 v1.1.0.0 (07 January, 2018)
     Added: Better connection check
     Added: Display glucose for openLibreReader-ios-blueReader
