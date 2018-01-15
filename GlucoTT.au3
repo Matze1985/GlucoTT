@@ -3,7 +3,6 @@
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
    #AutoIt3Wrapper_Res_Fileversion=1.2.1.0
-   #AutoIt3Wrapper_Res_Fileversion=1.2.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
