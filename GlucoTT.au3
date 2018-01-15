@@ -2,11 +2,8 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-<<<<<<< HEAD
    #AutoIt3Wrapper_Res_Fileversion=1.2.1.0
-=======
    #AutoIt3Wrapper_Res_Fileversion=1.2.0.0
->>>>>>> origin/master
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -164,11 +161,6 @@ While 1
       ToolTip($sGlucoseResult & " " & $sTrend, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $sTitle, 1, 2)
    EndIf
 
-<<<<<<< HEAD
-=======
-   _TrayMenu()
-
->>>>>>> origin/master
    Sleep($sInterval)
 WEnd
 
