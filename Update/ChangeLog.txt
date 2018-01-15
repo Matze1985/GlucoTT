@@ -2,6 +2,9 @@ ChangeLog
 
 Summarized history of the changes:
 
+v1.2.1.0 (15 January, 2018)
+    Change: Fix TrayMenu func for update glucose in tooltip
+
 v1.2.0.0 (14 January, 2018)
     Added: New TrayMenu entry to Nightscout website
     Change: Fix regex for Nightscout URL in settings file (Only https allow!)
