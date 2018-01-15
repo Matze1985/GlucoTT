@@ -63,18 +63,16 @@ Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
 Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
 
 ; TrayMenu
-Func _TrayMenu()
-   Local $idNightscout = TrayCreateItem("Nightscout")
-   TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
-   TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
+Local $idNightscout = TrayCreateItem("Nightscout")
+TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
+TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
 
-   While 1
-      Switch TrayGetMsg()
-         Case $idNightscout
-            ShellExecute($sDomain)
-      EndSwitch
-   WEnd
-EndFunc
+While 1
+   Switch TrayGetMsg()
+      Case $idNightscout
+         ShellExecute($sDomain)
+   EndSwitch
+WEnd
 
 ; API-Page
 Local $sPage = "/api/v1/entries/sgv?count=1"
