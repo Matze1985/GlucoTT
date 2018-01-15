@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.2.1.0
+   #AutoIt3Wrapper_Res_Fileversion=1.2.2.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -62,16 +62,18 @@ Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
 Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
 
 ; TrayMenu
-Local $idNightscout = TrayCreateItem("Nightscout")
-TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
-TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
+Func _TrayMenu()
+   Local $idNightscout = TrayCreateItem("Nightscout")
+   TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
+   TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
 
-While 1
-   Switch TrayGetMsg()
-      Case $idNightscout
-         ShellExecute($sDomain)
-   EndSwitch
-WEnd
+   While 1
+      Switch TrayGetMsg()
+         Case $idNightscout
+            ShellExecute($sDomain)
+      EndSwitch
+   WEnd
+EndFunc
 
 ; API-Page
 Local $sPage = "/api/v1/entries/sgv?count=1"
