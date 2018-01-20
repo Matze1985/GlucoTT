@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.2.2.0
+   #AutoIt3Wrapper_Res_Fileversion=1.2.3.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -13,9 +13,6 @@
 #include <StringConstants.au3>
 #include <INet.au3>
 #include <CheckUpdate.au3>
-
-Opt("TrayAutoPause", 0) ; The script will not pause when selecting the tray icon.
-Opt("TrayMenuMode", 2)
 
 ; App title
 Local $sTitle = "GlucoTT"
@@ -61,20 +58,6 @@ Local $sReadOption = FileReadLine($hFileOpen, 19)
 Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
 Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
 
-; TrayMenu
-Func _TrayMenu()
-   Local $idNightscout = TrayCreateItem("Nightscout")
-   TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
-   TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
-
-   While 1
-      Switch TrayGetMsg()
-         Case $idNightscout
-            ShellExecute($sDomain)
-      EndSwitch
-   WEnd
-EndFunc
-
 ; API-Page
 Local $sPage = "/api/v1/entries/sgv?count=1"
 
@@ -103,14 +86,12 @@ If Not $checkAlert Then
    Exit
 EndIf
 
-; Initialize and get session handle
+; Initialize and get session handle and get connection handle
 Local $hOpen = _WinHttpOpen()
+Local $hConnect = _WinHttpConnect($hOpen, $sDomain)
 
-While 1
+Func _Tooltip()
    _CheckConnection()
-
-   ; Get connection handle
-   Local $hConnect = _WinHttpConnect($hOpen, $sDomain)
 
    ; Make a SimpleSSL request
    Local $hRequestSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPage)
@@ -161,6 +142,28 @@ While 1
    EndIf
 
    Sleep($sInterval)
+
+EndFunc
+
+; TrayMenu
+Opt("TrayAutoPause", 0) ; The script will not pause when selecting the tray icon.
+Opt("TrayMenuMode", 2)
+Opt("TrayIconHide", 0) ; Display the tray icon.
+
+Local $idNightscout = TrayCreateItem("Nightscout")
+TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
+TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
+
+TraySetState()
+While 1
+   $msg = TrayGetMsg()
+   Select
+	   Case $msg = 0
+		   _Tooltip()
+         ContinueLoop
+      Case $msg = $idNightscout
+         ShellExecute($sDomain)
+   EndSelect
 WEnd
 
 ; Close File/WinHttp

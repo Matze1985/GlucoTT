@@ -2,8 +2,8 @@ ChangeLog
 
 Summarized history of the changes:
 
-v1.2.2.0 (15 January, 2018)
-    Change: Fix TrayMenu func for update glucose in tooltip
+v1.2.3.0 (20 January, 2018)
+    Change: Fix TrayMenu click bug, create a tooltip func
 
 v1.2.0.0 (14 January, 2018)
     Added: New TrayMenu entry to Nightscout website
