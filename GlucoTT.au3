@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.2.3.0
+   #AutoIt3Wrapper_Res_Fileversion=1.3.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -15,7 +15,7 @@
 #include <CheckUpdate.au3>
 
 ; App title
-Local $sTitle = "GlucoTT"
+Global $sTitle = "GlucoTT"
 
 ; Check for another instance of this program
 If _Singleton($sTitle, 1) = 0 Then
@@ -58,9 +58,6 @@ Local $sReadOption = FileReadLine($hFileOpen, 19)
 Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
 Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
 
-; API-Page
-Local $sPage = "/api/v1/entries/sgv?count=1"
-
 ; ErrorHandling: Checks
 Local $checkNumbers = StringRegExp($sDesktopW & $sDesktopH & $sInterval, '^[0-9]+$', $STR_REGEXPMATCH)
 If Not $checkNumbers Then
@@ -86,9 +83,12 @@ If Not $checkAlert Then
    Exit
 EndIf
 
+; API-Page
+Global $sPage = "/api/v1/entries/sgv?count=2"
+
 ; Initialize and get session handle and get connection handle
-Local $hOpen = _WinHttpOpen()
-Local $hConnect = _WinHttpConnect($hOpen, $sDomain)
+Global $hOpen = _WinHttpOpen()
+Global $hConnect = _WinHttpConnect($hOpen, $sDomain)
 
 Func _Tooltip()
    _CheckConnection()
@@ -100,8 +100,13 @@ Func _Tooltip()
    Local $sReturned = _WinHttpSimpleReadData($hRequestSSL)
 
    ; Match result variables
-   Local $sText = StringRegExpReplace($sReturned, "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	]|(openLibreReader-ios-blueReader-[0-9])|(\.[0-9]{1,4}))", " ")
+   Local $sFirstTextLine = StringRegExpReplace($sReturned, "(.*$)", "")
+   Local $sSecondTextLine = StringRegExpReplace($sReturned, "(\A.*)", "")
+   Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	]|(openLibreReader-ios-blueReader-[0-9])|(\.[0-9]{1,4}))"
+   Local $sText = StringRegExpReplace($sFirstTextLine, $sCountMatch, " ")
+   Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $sGlucose = StringRegExpReplace($sText, "[^0-9]+", "")
+   Local $sLastGlucose = StringRegExpReplace($sLastText, "[^0-9]+", "")
 
    ; TrendArrows
    If StringInStr($sText, "DoubleUp") Then
@@ -130,25 +135,35 @@ Func _Tooltip()
    If $sReadOption = "mmol/l" Then
       ; Calculate mmol/l
       $sGlucoseMmol = Int($sGlucose) * 0.0555
+	  $sLastGlucoseMmol = Int($sLastGlucose) * 0.0555
       $sGlucoseResult = Round($sGlucoseMmol, 1)
+	  $sLastGlucoseResult = Round($sLastGlucoseMmol, 1)
    Else
       $sGlucoseResult = Int($sGlucose)
+	  $sLastGlucoseResult = Int($sLastGlucose)
+   EndIf
+
+   ; Calculate delta
+   Local $sTmpDelta = Round($sGlucoseResult - $sLastGlucoseResult, 1)
+   If $sTmpDelta > 0 Then
+	  $sDelta = "+" &  $sTmpDelta
+   EndIf
+   If $sTmpDelta = 0 Then
+	  $sDelta = "±" &  $sTmpDelta
    EndIf
 
    If $sGlucoseResult < $sAlertLow Or $sGlucoseResult > $sAlertHigh Then
-      ToolTip($sGlucoseResult & " " & $sTrend, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $sTitle, 2, 2)
+      ToolTip("   " & $sDelta, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", 2, 2)
    Else
-      ToolTip($sGlucoseResult & " " & $sTrend, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $sTitle, 1, 2)
+      ToolTip("   " & $sDelta, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", 1, 2)
    EndIf
 
    Sleep($sInterval)
-
 EndFunc
 
 ; TrayMenu
 Opt("TrayAutoPause", 0) ; The script will not pause when selecting the tray icon.
 Opt("TrayMenuMode", 2)
-Opt("TrayIconHide", 0) ; Display the tray icon.
 
 Local $idNightscout = TrayCreateItem("Nightscout")
 TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
@@ -158,8 +173,8 @@ TraySetState()
 While 1
    $msg = TrayGetMsg()
    Select
-	   Case $msg = 0
-		   _Tooltip()
+      Case $msg = 0
+         _Tooltip()
          ContinueLoop
       Case $msg = $idNightscout
          ShellExecute($sDomain)

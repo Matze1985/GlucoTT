@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v1.3.0.0 (03 February, 2018)
+    Added: Delta for glucose 
+    Change: Remove title in tooltip and add current glucose and trend
+    Change: Fix global/local variables logic
 
 v1.2.3.0 (20 January, 2018)
     Change: Fix TrayMenu click bug, create a tooltip func
