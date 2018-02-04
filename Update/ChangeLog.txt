@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v1.4.2.0 (04 February, 2018)
+    Change: Fix (Error: Variable used without being declared.), Line 1902 (https://github.com/Matze1985/GlucoTT/issues/4) - COM error handler
+
 v1.4.1.0 (04 February, 2018)
     Change: I hope to fix (Error: Variable used without being declared.), Line 1902 (https://github.com/Matze1985/GlucoTT/issues/4)
 
