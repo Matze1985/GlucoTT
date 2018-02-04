@@ -2,9 +2,11 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.4.0.0
+   #AutoIt3Wrapper_Res_Fileversion=1.4.1.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
+   ;#AutoIt3Wrapper_Run_Au3Stripper=y
+   ;#Au3Stripper_Parameters=/mo /SCI=1
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <WinHttp.au3>
 #include <MsgBoxConstants.au3>
@@ -86,9 +88,9 @@ Global $hConnect = _WinHttpConnect($hOpen, $sDomain)
 
 Func _Tooltip()
    ; Check connection
-   $checkInet = _CheckConnection()
+   Dim $checkInet = _CheckConnection()
    If $checkInet <> 1 Then
-      $checkInet = "✕"
+      Local $checkInet = "✕"
    EndIf
 
    ; Make a SimpleSSL request
