@@ -1,6 +1,12 @@
 ChangeLog
 
 Summarized history of the changes:
+v1.4.0.0 (04 February, 2018)
+    Added: Better tooltip logic
+    Change: Better connection handling
+    Change: Cleaner code
+
+Summarized history of the changes:
 v1.3.0.0 (03 February, 2018)
     Added: Delta for glucose 
     Change: Remove title in tooltip and add current glucose and trend

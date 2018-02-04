@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.3.0.0
+   #AutoIt3Wrapper_Res_Fileversion=1.4.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -11,7 +11,6 @@
 #include <FileConstants.au3>
 #include <TrayConstants.au3>
 #include <StringConstants.au3>
-#include <INet.au3>
 #include <CheckUpdate.au3>
 
 ; App title
@@ -23,16 +22,11 @@ If _Singleton($sTitle, 1) = 0 Then
    Exit
 EndIf
 
-; Check internet connection on Start/Loop
+; Check internet connection on Start/Loop - Return 1 for ON | Return 0 for OFF
 Func _CheckConnection()
-   Local $dData
-   Local $sCheckConnection = StringRegExp("https://raw.githubusercontent.com/Matze1985/GlucoTT/master/GlucoTT.au3", "([A-Za-z0-9])", $STR_REGEXPMATCH)
-
-   $dData = _GetIP()
-   If $dData == -1 Or $sCheckConnection = 0 Then
-      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Not working connection!")
-      Exit
-   EndIf
+   Local $isReturn = DllCall("wininet.dll", "int", "InternetGetConnectedState", "int", 0, "int", 0)
+   If (@error) Or ($isReturn[0] = 0) Then Return SetError(1, 0, 0)
+   Return 1
 EndFunc
 
 ; Check for updates
@@ -91,7 +85,11 @@ Global $hOpen = _WinHttpOpen()
 Global $hConnect = _WinHttpConnect($hOpen, $sDomain)
 
 Func _Tooltip()
-   _CheckConnection()
+   ; Check connection
+   $checkInet = _CheckConnection()
+   If $checkInet <> 1 Then
+      $checkInet = "✕"
+   EndIf
 
    ; Make a SimpleSSL request
    Local $hRequestSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPage)
@@ -110,52 +108,60 @@ Func _Tooltip()
 
    ; TrendArrows
    If StringInStr($sText, "DoubleUp") Then
-      $sTrend = "⇈"
+      Local $sTrend = "⇈"
    EndIf
    If StringInStr($sText, "Flat") Then
-      $sTrend = "→︎"
+      Local $sTrend = "→︎"
    EndIf
    If StringInStr($sText, "SingleUp") Then
-      $sTrend = "↑"
+      Local $sTrend = "↑"
    EndIf
    If StringInStr($sText, "FortyFiveUp") Then
-      $sTrend = "↗"
+      Local $sTrend = "↗"
    EndIf
    If StringInStr($sText, "FortyFiveDown") Then
-      $sTrend = "↘"
+      Local $sTrend = "↘"
    EndIf
    If StringInStr($sText, "SingleDown") Then
-      $sTrend = "↓"
+      Local $sTrend = "↓"
    EndIf
    If StringInStr($sText, "DoubleDown") Then
-      $sTrend = "⇊"
+      Local $sTrend = "⇊"
    EndIf
 
    ; Check mmol/l option
    If $sReadOption = "mmol/l" Then
       ; Calculate mmol/l
-      $sGlucoseMmol = Int($sGlucose) * 0.0555
-	  $sLastGlucoseMmol = Int($sLastGlucose) * 0.0555
-      $sGlucoseResult = Round($sGlucoseMmol, 1)
-	  $sLastGlucoseResult = Round($sLastGlucoseMmol, 1)
+      Local $sGlucoseMmol = Int($sGlucose) * 0.0555
+      Local $sLastGlucoseMmol = Int($sLastGlucose) * 0.0555
+      Local $sGlucoseResult = Round($sGlucoseMmol, 1)
+      Local $sLastGlucoseResult = Round($sLastGlucoseMmol, 1)
    Else
-      $sGlucoseResult = Int($sGlucose)
-	  $sLastGlucoseResult = Int($sLastGlucose)
+      Local $sGlucoseResult = Int($sGlucose)
+      Local $sLastGlucoseResult = Int($sLastGlucose)
    EndIf
 
    ; Calculate delta
    Local $sTmpDelta = Round($sGlucoseResult - $sLastGlucoseResult, 1)
    If $sTmpDelta > 0 Then
-	  $sDelta = "+" &  $sTmpDelta
+      Local $sDelta = "+" & $sTmpDelta
    EndIf
    If $sTmpDelta = 0 Then
-	  $sDelta = "±" &  $sTmpDelta
+      Local $sDelta = "±" & $sTmpDelta
    EndIf
 
+   ; Check tooltip alarm
    If $sGlucoseResult < $sAlertLow Or $sGlucoseResult > $sAlertHigh Then
-      ToolTip("   " & $sDelta, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", 2, 2)
+      Local $sAlarm = "2"
    Else
-      ToolTip("   " & $sDelta, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", 1, 2)
+      Local $sAlarm = "1"
+   EndIf
+
+   ; Running tooltip
+   If $checkInet <> 1 Then
+      ToolTip($checkInet, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "✕", 2, 2)
+   Else
+      ToolTip("   " & $sDelta, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
    EndIf
 
    Sleep($sInterval)
@@ -171,7 +177,7 @@ TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
 
 TraySetState()
 While 1
-   $msg = TrayGetMsg()
+   Local $msg = TrayGetMsg()
    Select
       Case $msg = 0
          _Tooltip()
