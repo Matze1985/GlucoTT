@@ -2,20 +2,11 @@ ChangeLog
 
 Summarized history of the changes:
 v1.4.3.0 (06 February, 2018)
-    Change: Clean code again and create a final release version.
-
-v1.4.2.0 (04 February, 2018)
-    Change: Fix (Error: Variable used without being declared.), Line 1902 (https://github.com/Matze1985/GlucoTT/issues/4) - COM error handler
-
-v1.4.1.0 (04 February, 2018)
-    Change: I hope to fix (Error: Variable used without being declared.), Line 1902 (https://github.com/Matze1985/GlucoTT/issues/4)
-
-v1.4.0.0 (04 February, 2018)
+    Change: Cleaner code for a final release version.
     Added: Better tooltip logic
     Change: Better connection handling
     Change: Cleaner code
 
-Summarized history of the changes:
 v1.3.0.0 (03 February, 2018)
     Added: Delta for glucose 
     Change: Remove title in tooltip and add current glucose and trend
