@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.4.2.0
+   #AutoIt3Wrapper_Res_Fileversion=1.4.3.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -15,14 +15,6 @@
 
 ; App title
 Local $sTitle = "GlucoTT"
-
-; Handle COM errors
-Func ErrorCheck()
-   Local $oError = ObjEvent("AutoIt.Error", "ErrorCheck")
-   Local $error = $oError.number
-   If $error = 0 Then $error = -1
-   Local $eventError = $error
-EndFunc
 
 ; Check for another instance of this program
 If _Singleton($sTitle, 1) = 0 Then
@@ -96,8 +88,10 @@ Func _Tooltip()
 
    ; Check connection
    Local $checkInet = _CheckConnection()
+   Local $checkInetMsg
+
    If $checkInet <> 1 Then
-      Local $checkInet = "✕"
+      $checkInetMsg = "✕"
    EndIf
 
    ; Make a SimpleSSL request
@@ -116,66 +110,73 @@ Func _Tooltip()
    Local $sLastGlucose = StringRegExpReplace($sLastText, "[^0-9]+", "")
 
    ; TrendArrows
+   Local $sTrend
    If StringInStr($sText, "DoubleUp") Then
-      Local $sTrend = "⇈"
+      $sTrend = "⇈"
    EndIf
    If StringInStr($sText, "Flat") Then
-      Local $sTrend = "→︎"
+      $sTrend = "→︎"
    EndIf
    If StringInStr($sText, "SingleUp") Then
-      Local $sTrend = "↑"
+      $sTrend = "↑"
    EndIf
    If StringInStr($sText, "FortyFiveUp") Then
-      Local $sTrend = "↗"
+      $sTrend = "↗"
    EndIf
    If StringInStr($sText, "FortyFiveDown") Then
-      Local $sTrend = "↘"
+      $sTrend = "↘"
    EndIf
    If StringInStr($sText, "SingleDown") Then
-      Local $sTrend = "↓"
+      $sTrend = "↓"
    EndIf
    If StringInStr($sText, "DoubleDown") Then
-      Local $sTrend = "⇊"
+      $sTrend = "⇊"
    EndIf
 
    ; Check mmol/l option
+   Local $sCalcGlucose, $sGlucoseMmol, $sLastGlucoseMmol, $sGlucoseResult, $sLastGlucoseResult
    If $sReadOption = "mmol/l" Then
       ; Calculate mmol/l
-      Local $sGlucoseMmol = Int($sGlucose) * 0.0555
-      Local $sLastGlucoseMmol = Int($sLastGlucose) * 0.0555
-      Local $sGlucoseResult = Round($sGlucoseMmol, 1)
-      Local $sLastGlucoseResult = Round($sLastGlucoseMmol, 1)
+      $sCalcGlucose = 0.0555
+      $sGlucoseMmol = Int($sGlucose) * $sCalcGlucose
+      $sLastGlucoseMmol = Int($sLastGlucose) * $sCalcGlucose
+      $sGlucoseResult = Round($sGlucoseMmol, 1)
+      $sLastGlucoseResult = Round($sLastGlucoseMmol, 1)
    Else
-      Local $sGlucoseResult = Int($sGlucose)
-      Local $sLastGlucoseResult = Int($sLastGlucose)
+      $sGlucoseResult = Int($sGlucose)
+      $sLastGlucoseResult = Int($sLastGlucose)
    EndIf
 
    ; Calculate delta
+   Local $sDelta
    Local $sTmpDelta = Round($sGlucoseResult - $sLastGlucoseResult, 1)
    If $sTmpDelta > 0 Then
-      Local $sDelta = "+" & $sTmpDelta
+      $sDelta = "+" & $sTmpDelta
+   Else
+	  $sDelta = $sTmpDelta
    EndIf
    If $sTmpDelta = 0 Then
-      Local $sDelta = "±" & $sTmpDelta
+      $sDelta = "±" & $sTmpDelta
    EndIf
 
    ; Check tooltip alarm
+   Local $sAlarm
+
    If $sGlucoseResult < $sAlertLow Or $sGlucoseResult > $sAlertHigh Then
-      Local $sAlarm = "2"
+      $sAlarm = "2"
    Else
-      Local $sAlarm = "1"
+      $sAlarm = "1"
    EndIf
 
    ; Running tooltip
    If $checkInet <> 1 Then
-      ToolTip($checkInet, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "✕", 2, 2)
+      ToolTip($checkInetMsg, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $checkInetMsg, 3, 2)
    Else
       ToolTip("   " & $sDelta, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
    EndIf
 
    Sleep($sInterval)
 
-   ErrorCheck()
 EndFunc
 
 ; TrayMenu
