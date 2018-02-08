@@ -1,0 +1,27 @@
+ChangeLog
+
+Summarized history of the changes:
+v1.4.3.0 (06 February, 2018)
+    Change: Cleaner code for a final release version.
+    Added: Better tooltip logic
+    Change: Better connection handling
+    Change: Cleaner code
+
+v1.3.0.0 (03 February, 2018)
+    Added: Delta for glucose 
+    Change: Remove title in tooltip and add current glucose and trend
+    Change: Fix global/local variables logic
+
+v1.2.3.0 (20 January, 2018)
+    Change: Fix TrayMenu click bug, create a tooltip func
+
+v1.2.0.0 (14 January, 2018)
+    Added: New TrayMenu entry to Nightscout website
+    Change: Fix regex for Nightscout URL in settings file (Only https allow!)
+    Change: Change all default Message Boxes to Extended Message Boxes from UDF
+
+v1.1.0.0 (07 January, 2018)
+    Added: Better connection check
+    Added: Display glucose for openLibreReader-ios-blueReader
+    Added: UDF for updating GlucoTT (https://www.autoitscript.com/forum/topic/162107-checkupdate-autoupdate-a-running-script-or-exe-over-the-web/)
+    Added: Include ExtMsgBox.au3 in CheckUpdate.au3 for Update-MsgBox buttons (https://www.autoitscript.com/forum/topic/109096-extended-message-box-new-version-20-sep-17/)
