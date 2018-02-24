@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.4.3.0
+   #AutoIt3Wrapper_Res_Fileversion=1.4.4.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -78,7 +78,7 @@ If Not $checkAlert Then
 EndIf
 
 ; API-Page
-Global $sPage = "/api/v1/entries/sgv?count=2"
+Local $sPage = "/api/v1/entries/sgv?count=2"
 
 ; Initialize and get session handle and get connection handle
 Local $hOpen = _WinHttpOpen()
@@ -88,10 +88,10 @@ Func _Tooltip()
 
    ; Check connection
    Local $checkInet = _CheckConnection()
-   Local $checkInetMsg
+   Local $wrongMsg
 
    If $checkInet <> 1 Then
-      $checkInetMsg = "✕"
+      $wrongMsg = "✕"
    EndIf
 
    ; Make a SimpleSSL request
@@ -169,8 +169,8 @@ Func _Tooltip()
    EndIf
 
    ; Running tooltip
-   If $checkInet <> 1 Then
-      ToolTip($checkInetMsg, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $checkInetMsg, 3, 2)
+   If $checkInet <> 1 Or $sGlucoseResult = 0 And $sDelta = 0 Then
+      ToolTip($wrongMsg, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $wrongMsg, 3, 2)
    Else
       ToolTip("   " & $sDelta, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
    EndIf

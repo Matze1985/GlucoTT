@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v1.4.4.0 (24 February, 2018)
+    Added: Better error handling for tooltip
+	Change: Global to local $sPage
+	
 v1.4.3.0 (06 February, 2018)
     Change: Cleaner code for a final release version.
     Added: Better tooltip logic
