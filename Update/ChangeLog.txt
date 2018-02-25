@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v1.4.5.0 (25 February, 2018)
+	Change: Changed regex domain check 
+	
 v1.4.4.0 (24 February, 2018)
     Added: Better error handling for tooltip
 	Change: Global to local $sPage
