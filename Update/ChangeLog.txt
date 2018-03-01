@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v1.5.0.0 (01 March, 2018)
+	Added: User-friendly settings (Open file after error, after closing, the app restarts
+	Added: Entry "Settings" in TrayMenu
+	
 v1.4.5.0 (25 February, 2018)
 	Change: Changed regex domain check 
 	

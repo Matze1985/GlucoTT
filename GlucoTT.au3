@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.4.5.0
+   #AutoIt3Wrapper_Res_Fileversion=1.5.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -12,6 +12,9 @@
 #include <TrayConstants.au3>
 #include <StringConstants.au3>
 #include <CheckUpdate.au3>
+#include <WinAPIFiles.au3>
+
+Opt("WinTitleMatchMode", 2) ;1=start, 2=subStr, 3=exact, 4=advanced, -1 to -4=Nocase
 
 ; App title
 Local $sTitle = "GlucoTT"
@@ -34,7 +37,8 @@ CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.git
 If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " @error " & @error & @CRLF)
 
 ; Settings file location
-Local $sFilePath = @ScriptDir & "\Settings.txt"
+Local $sFile = "Settings.txt"
+Local $sFilePath = @ScriptDir & "\" & $sFile
 
 ; Open the file for reading and store the handle to a variable.
 Local $hFileOpen = FileOpen($sFilePath, $FO_READ)
@@ -56,26 +60,46 @@ Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
 Local $checkNumbers = StringRegExp($sDesktopW & $sDesktopH & $sInterval, '^[0-9]+$', $STR_REGEXPMATCH)
 If Not $checkNumbers Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers allowed in the fields, please check:" & @CRLF & @CRLF & "- Desktop width (minus)" & @CRLF & "- Desktop height (minus)" & @CRLF & "- Interval (ms) for updating glucose" & @CRLF & "- Alert glucose lower then" & @CRLF & "- Alert glucose higher then")
-   Exit
+   _FileOpenAndRestart()
 EndIf
 
 Local $checkDomain = StringRegExp($sDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\{\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?', $STR_REGEXPMATCH)
 If Not $checkDomain Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong URL in file!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://account.azurewebsites.net")
-   Exit
+   _FileOpenAndRestart()
 EndIf
 
 Local $checkReadOption = StringRegExp($sReadOption, '^(|mmol\/l)$', $STR_REGEXPMATCH)
 If Not $checkReadOption Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong read option!" & @CRLF & "Use empty for mg/dl or use mmol/l in the field as read option!")
-   Exit
+   _FileOpenAndRestart()
 EndIf
 
 Local $checkAlert = StringRegExp($sAlertLow & $sAlertHigh, '^[0-9.]+$', $STR_REGEXPMATCH)
 If Not $checkAlert Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only point and numbers allowed in the following fields:" & @CRLF & @CRLF & "- Alert glucose lower then" & @CRLF & "- Alert glucose higher then")
-   Exit
+   _FileOpenAndRestart()
 EndIf
+
+; Settings open and after closing restarts the app
+Func _FileOpenAndRestart()
+   Local $openSettings
+
+   If WinExists($sFile) Then
+      While WinExists($sFile)
+         WinKill($sFile)
+      WEnd
+      $openSettings = ShellExecute($sFilePath)
+      ProcessWaitClose($openSettings)
+      Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
+	  Exit
+   Else
+      $openSettings = ShellExecute($sFilePath)
+      ProcessWaitClose($openSettings)
+      Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
+	  Exit
+   EndIf
+EndFunc
 
 ; API-Page
 Local $sPage = "/api/v1/entries/sgv?count=2"
@@ -153,7 +177,7 @@ Func _Tooltip()
    If $sTmpDelta > 0 Then
       $sDelta = "+" & $sTmpDelta
    Else
-	  $sDelta = $sTmpDelta
+      $sDelta = $sTmpDelta
    EndIf
    If $sTmpDelta = 0 Then
       $sDelta = "±" & $sTmpDelta
@@ -184,10 +208,13 @@ Opt("TrayAutoPause", 0) ; The script will not pause when selecting the tray icon
 Opt("TrayMenuMode", 2)
 
 Local $idNightscout = TrayCreateItem("Nightscout")
+TrayCreateItem("") ; ------
+Local $idSettings = TrayCreateItem("Settings")
 TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
 TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
 
 TraySetState()
+
 While 1
    Local $msg = TrayGetMsg()
    Select
@@ -196,6 +223,8 @@ While 1
          ContinueLoop
       Case $msg = $idNightscout
          ShellExecute($sDomain)
+      Case $msg = $idSettings
+         _FileOpenAndRestart()
    EndSelect
 WEnd
 

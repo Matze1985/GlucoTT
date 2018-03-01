@@ -1,4 +1,4 @@
-URL for Azure:
+URL for Nightscout:
 --------------------------------------------------
 https://<account>.azurewebsites.net
 --------------------------------------------------
