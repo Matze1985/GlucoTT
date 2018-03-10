@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v1.6.0.0 (10 March, 2018)
+	Added: Last reading in minutes, showing in tooltip
+	
 v1.5.0.0 (01 March, 2018)
 	Added: User-friendly settings (Open file after error, after closing, the app restarts
 	Added: Entry "Settings" in TrayMenu

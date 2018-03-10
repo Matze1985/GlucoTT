@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.5.0.0
+   #AutoIt3Wrapper_Res_Fileversion=1.6.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -57,25 +57,25 @@ Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
 Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
 
 ; ErrorHandling: Checks
-Local $checkNumbers = StringRegExp($sDesktopW & $sDesktopH & $sInterval, '^[0-9]+$', $STR_REGEXPMATCH)
+Local $checkNumbers = StringRegExp($sDesktopW & $sDesktopH & $sInterval, '^[0-9]+$')
 If Not $checkNumbers Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers allowed in the fields, please check:" & @CRLF & @CRLF & "- Desktop width (minus)" & @CRLF & "- Desktop height (minus)" & @CRLF & "- Interval (ms) for updating glucose" & @CRLF & "- Alert glucose lower then" & @CRLF & "- Alert glucose higher then")
    _FileOpenAndRestart()
 EndIf
 
-Local $checkDomain = StringRegExp($sDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\{\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?', $STR_REGEXPMATCH)
+Local $checkDomain = StringRegExp($sDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\"{"\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?')
 If Not $checkDomain Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong URL in file!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://account.azurewebsites.net")
    _FileOpenAndRestart()
 EndIf
 
-Local $checkReadOption = StringRegExp($sReadOption, '^(|mmol\/l)$', $STR_REGEXPMATCH)
+Local $checkReadOption = StringRegExp($sReadOption, '^(|mmol\/l)$')
 If Not $checkReadOption Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong read option!" & @CRLF & "Use empty for mg/dl or use mmol/l in the field as read option!")
    _FileOpenAndRestart()
 EndIf
 
-Local $checkAlert = StringRegExp($sAlertLow & $sAlertHigh, '^[0-9.]+$', $STR_REGEXPMATCH)
+Local $checkAlert = StringRegExp($sAlertLow & $sAlertHigh, '^[0-9.]+$')
 If Not $checkAlert Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only point and numbers allowed in the following fields:" & @CRLF & @CRLF & "- Alert glucose lower then" & @CRLF & "- Alert glucose higher then")
    _FileOpenAndRestart()
@@ -92,12 +92,12 @@ Func _FileOpenAndRestart()
       $openSettings = ShellExecute($sFilePath)
       ProcessWaitClose($openSettings)
       Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
-	  Exit
+      Exit
    Else
       $openSettings = ShellExecute($sFilePath)
       ProcessWaitClose($openSettings)
       Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
-	  Exit
+      Exit
    EndIf
 EndFunc
 
@@ -132,6 +132,15 @@ Func _Tooltip()
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $sGlucose = StringRegExpReplace($sText, "[^0-9]+", "")
    Local $sLastGlucose = StringRegExpReplace($sLastText, "[^0-9]+", "")
+
+   ; Check time readings
+   Local $sYear = StringLeft($sFirstTextLine, 4)
+   Local $sMonth = StringMid($sFirstTextLine, 6, 2)
+   Local $sDay = StringMid($sFirstTextLine, 9, 2)
+   Local $sHour = StringMid($sFirstTextLine, 12, 2)
+   Local $sMin = StringMid($sFirstTextLine, 15, 2)
+   Local $sSec = StringMid($sFirstTextLine, 18, 2)
+   Local $iDateCalc = _DateDiff('n', $sYear & "/" & $sMonth & "/" & $sDay & " " & $sHour & ":" & $sMin & ":" & $sSec, _NowCalc())
 
    ; TrendArrows
    Local $sTrend
@@ -196,7 +205,7 @@ Func _Tooltip()
    If $checkInet <> 1 Or $sGlucoseResult = 0 And $sDelta = 0 Then
       ToolTip($wrongMsg, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $wrongMsg, 3, 2)
    Else
-      ToolTip("   " & $sDelta, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
+      ToolTip("   " & $sDelta & " " & @CR & "   " & "◷ " & $iDateCalc & " min", @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
    EndIf
 
    Sleep($sInterval)
