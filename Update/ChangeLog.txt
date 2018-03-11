@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v1.6.1.0 (11 March, 2018)
+	Remove: Clock symbol removed from the tooltip for better compatibility
+	
 v1.6.0.0 (10 March, 2018)
 	Added: Last reading in minutes, showing in tooltip
 	

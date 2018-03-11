@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.6.0.0
+   #AutoIt3Wrapper_Res_Fileversion=1.6.1.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -205,7 +205,7 @@ Func _Tooltip()
    If $checkInet <> 1 Or $sGlucoseResult = 0 And $sDelta = 0 Then
       ToolTip($wrongMsg, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $wrongMsg, 3, 2)
    Else
-      ToolTip("   " & $sDelta & " " & @CR & "   " & "◷ " & $iDateCalc & " min", @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
+      ToolTip("   " & $sDelta & " " & @CR & "   " & $iDateCalc & " min", @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
    EndIf
 
    Sleep($sInterval)
