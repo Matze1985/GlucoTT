@@ -1,6 +1,12 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.0.0.0 (20 March, 2018)
+	Add: Better automatic read glucose interval
+	Add: Read application settings from Nightscout
+	Add: GUI for settings to read and save in ini file
+	Change: A new and better TrayMenu with none TrayItem Pause
+
 v1.6.1.0 (11 March, 2018)
 	Remove: Clock symbol removed from the tooltip for better compatibility
 	

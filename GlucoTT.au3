@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=1.6.1.0
+   #AutoIt3Wrapper_Res_Fileversion=2.0.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -11,9 +11,11 @@
 #include <FileConstants.au3>
 #include <TrayConstants.au3>
 #include <StringConstants.au3>
-#include <CheckUpdate.au3>
+#include <Include\CheckUpdate.au3>
 #include <WinAPIFiles.au3>
 
+Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
+Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
 Opt("WinTitleMatchMode", 2) ;1=start, 2=subStr, 3=exact, 4=advanced, -1 to -4=Nocase
 
 ; App title
@@ -36,77 +38,46 @@ EndFunc
 CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
 If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " @error " & @error & @CRLF)
 
-; Settings file location
-Local $sFile = "Settings.txt"
-Local $sFilePath = @ScriptDir & "\" & $sFile
+; Read settings from ini file
+Local $sFile = "Settings.ini"
+Local $sIniCategory = "Settings"
+Local $sIniTitleNightscout = "Nightscout"
+Local $sIniDefaultNightscout = "https://<account>.azurewebsites.net"
+Local $sIniTitleDesktopWidth = "Desktop width (minus)"
+Local $sIniDefaultDesktopWidth = "43"
+Local $sIniTitleDesktopHeight = "Desktop height (minus)"
+Local $sIniDefaultDesktopHeight = "68"
+Local $sInputDomain = IniRead($sFile, $sIniCategory, $sIniTitleNightscout, $sIniDefaultNightscout)
+Local $sInputDesktopWidth = IniRead($sFile, $sIniCategory, $sIniTitleDesktopWidth, $sIniDefaultDesktopWidth)
+Local $sInputDesktophHeight = IniRead($sFile, $sIniCategory, $sIniTitleDesktopHeight, $sIniDefaultDesktopHeight)
 
-; Open the file for reading and store the handle to a variable.
-Local $hFileOpen = FileOpen($sFilePath, $FO_READ)
-If $hFileOpen = -1 Then
-   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "An error occurred when reading the file.")
-   Exit
-EndIf
-
-; Definition: Settings
-Local $sDomain = FileReadLine($hFileOpen, 3)
-Local $sDesktopW = FileReadLine($hFileOpen, Int(7))
-Local $sDesktopH = FileReadLine($hFileOpen, Int(11))
-Local $sInterval = FileReadLine($hFileOpen, Int(15))
-Local $sReadOption = FileReadLine($hFileOpen, 19)
-Local $sAlertLow = FileReadLine($hFileOpen, Int(23))
-Local $sAlertHigh = FileReadLine($hFileOpen, Int(27))
-
-; ErrorHandling: Checks
-Local $checkNumbers = StringRegExp($sDesktopW & $sDesktopH & $sInterval, '^[0-9]+$')
-If Not $checkNumbers Then
-   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers allowed in the fields, please check:" & @CRLF & @CRLF & "- Desktop width (minus)" & @CRLF & "- Desktop height (minus)" & @CRLF & "- Interval (ms) for updating glucose" & @CRLF & "- Alert glucose lower then" & @CRLF & "- Alert glucose higher then")
-   _FileOpenAndRestart()
-EndIf
-
-Local $checkDomain = StringRegExp($sDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\"{"\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?')
+; Check Domain settings
+Local $checkDomain = StringRegExp($sInputDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\"{"\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?')
 If Not $checkDomain Then
-   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong URL in file!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://account.azurewebsites.net")
-   _FileOpenAndRestart()
+   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong URL for Nightscout set!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://account.azurewebsites.net")
+   _Settings()
 EndIf
 
-Local $checkReadOption = StringRegExp($sReadOption, '^(|mmol\/l)$')
-If Not $checkReadOption Then
-   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong read option!" & @CRLF & "Use empty for mg/dl or use mmol/l in the field as read option!")
-   _FileOpenAndRestart()
+; Check desktop width and height settings
+Local $checkNumbers = StringRegExp($sInputDesktopWidth & $sInputDesktophHeight, '^[0-9]+$')
+If Not $checkNumbers Then
+   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers allowed in the fields, please check:" & @CRLF & @CRLF & "- Desktop width (minus)" & @CRLF & "- Desktop height (minus)")
+   _Settings()
 EndIf
 
-Local $checkAlert = StringRegExp($sAlertLow & $sAlertHigh, '^[0-9.]+$')
-If Not $checkAlert Then
-   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only point and numbers allowed in the following fields:" & @CRLF & @CRLF & "- Alert glucose lower then" & @CRLF & "- Alert glucose higher then")
-   _FileOpenAndRestart()
-EndIf
-
-; Settings open and after closing restarts the app
-Func _FileOpenAndRestart()
-   Local $openSettings
-
-   If WinExists($sFile) Then
-      While WinExists($sFile)
-         WinKill($sFile)
-      WEnd
-      $openSettings = ShellExecute($sFilePath)
-      ProcessWaitClose($openSettings)
-      Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
-      Exit
-   Else
-      $openSettings = ShellExecute($sFilePath)
-      ProcessWaitClose($openSettings)
-      Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
-      Exit
-   EndIf
+; After closing restarts the app
+Func _Restart()
+   Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
+   Exit
 EndFunc
 
-; API-Page
+; API-Pages
 Local $sPage = "/api/v1/entries/sgv?count=2"
+Local $sJsonState = "/api/v1/status.json"
 
 ; Initialize and get session handle and get connection handle
 Local $hOpen = _WinHttpOpen()
-Local $hConnect = _WinHttpConnect($hOpen, $sDomain)
+Local $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
 
 Func _Tooltip()
 
@@ -120,17 +91,20 @@ Func _Tooltip()
 
    ; Make a SimpleSSL request
    Local $hRequestSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPage)
+   Local $hRequestJsonSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sJsonState)
 
    ; Read RequestSSL
    Local $sReturned = _WinHttpSimpleReadData($hRequestSSL)
+   Local $sReturnedJson = _WinHttpSimpleReadData($hRequestJsonSSL)
 
-   ; Match result variables
+   ; Match result variables from page
    Local $sFirstTextLine = StringRegExpReplace($sReturned, "(.*$)", "")
    Local $sSecondTextLine = StringRegExpReplace($sReturned, "(\A.*)", "")
    Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	]|(openLibreReader-ios-blueReader-[0-9])|(\.[0-9]{1,4}))"
    Local $sText = StringRegExpReplace($sFirstTextLine, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $sGlucose = StringRegExpReplace($sText, "[^0-9]+", "")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose: " & $sGlucose & @CRLF)
    Local $sLastGlucose = StringRegExpReplace($sLastText, "[^0-9]+", "")
 
    ; Check time readings
@@ -141,6 +115,79 @@ Func _Tooltip()
    Local $sMin = StringMid($sFirstTextLine, 15, 2)
    Local $sSec = StringMid($sFirstTextLine, 18, 2)
    Local $iDateCalc = _DateDiff('n', $sYear & "/" & $sMonth & "/" & $sDay & " " & $sHour & ":" & $sMin & ":" & $sSec, _NowCalc())
+
+   ; Settings check for json: urgentRes
+   Local $sReadIntervalMin = StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),".*', '\1')
+   Local $checkReadIntervalMin = StringRegExp($sReadIntervalMin, '([A-Za-z,":-{}])')
+   If $checkReadIntervalMin = 1 Then
+      $sReadIntervalMin = StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),.*', '\1')
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (min): " & $sReadIntervalMin & @CRLF)
+
+   ; Calculate read interval
+   Local $sReadDiffMin = Int($sReadIntervalMin) - Int($iDateCalc)
+
+   ; Check negative minutes and replace "-"
+   If $sReadDiffMin < 0 Then
+      $sReadDiffMin = StringReplace($sReadDiffMin, "-", "")
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read diff (min): " & $sReadDiffMin & @CRLF)
+
+   Local $sReadIntervalMs = Int($sReadDiffMin) * 60000
+   Local $sReadInterval = Int($sReadIntervalMs) - Int($sReadIntervalMs) + 60000
+
+   ; Settings check for json: units
+   Local $sReadOption = StringRegExpReplace($sReturnedJson, '.*"units":"([^"]+)",.*', '\1')
+   Local $checkReadOption = StringRegExp($sReadOption, '([{"A-Z0-9abcefhijknpqrstuvwxyz}:,])')
+   If $checkReadOption = 1 Then
+      $sReadOption = StringRegExpReplace($sReturnedJson, '.*"units":([^"]+),.*', '\1')
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Units: " & $sReadOption & @CRLF)
+
+   ; Check mmol or mg/dl
+   Local $checkReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
+
+   If Not $checkReadOptionValues Then
+      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", 'Wrong read option!' & @CRLF & 'Please set:' & @CRLF & 'DISPLAY_UNITS' & @CRLF & 'in the "Nightscout" application settings' & @CRLF & 'with a "mmol" or "mg/dl" value!')
+   EndIf
+
+   ; Alarm settings check for json: alarmLow
+   Local $sAlertLow = StringRegExpReplace($sReturnedJson, '.*"alarmLow":"([^"]+)",".*', '\1')
+   Local $checkAlertLow = StringRegExp($sAlertLow, '([A-Za-z,":-{}])')
+   If $checkAlertLow = 1 Then
+      $sAlertLow = StringRegExpReplace($sReturnedJson, '.*"alarmLow":([^"]+),.*', '\1')
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Low: " & $sAlertLow & @CRLF)
+
+   ; Alarm settings check for json: alarmHigh
+   Local $sAlertHigh = StringRegExpReplace($sReturnedJson, '.*"alarmHigh":"([^"]+)",".*', '\1')
+   Local $checkAlertHigh = StringRegExp($sAlertHigh, '([A-Za-z,":-{}])')
+   If $checkAlertHigh = 1 Then
+      $sAlertHigh = StringRegExpReplace($sReturnedJson, '.*"alarmHigh":([^"]+),.*', '\1')
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " High: " & $sAlertHigh & @CRLF)
+
+   ; Alarm settings check for json: alarmUrgentLow
+   Local $sAlertLowUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":"([^"]+)",".*', '\1')
+   Local $checkAlertLowUrgent = StringRegExp($sAlertLowUrgent, '([A-Za-z,":-{}])')
+   If $checkAlertLowUrgent = 1 Then
+      $sAlertLowUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":([^"]+),.*', '\1')
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentLow: " & $sAlertLowUrgent & @CRLF)
+
+   ; Alarm settings check for json: alarmUrgentHigh
+   Local $sAlertHighUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":"([^"]+)",.*', '\1')
+   Local $checkAlertHighUrgent = StringRegExp($sAlertHighUrgent, '([A-Za-z,":-{}])')
+   If $checkAlertHighUrgent = 1 Then
+      $sAlertHighUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":([^"]+),.*', '\1')
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentHigh: " & $sAlertHighUrgent & @CRLF)
+
+   ; Check false alarms and mg/dl values
+   Local $checkAlertValues = StringRegExp($sAlertLow & $sAlertHigh & $sAlertLowUrgent & $sAlertHighUrgent, '([0-9]{1,3})')
+   If Not $checkAlertValues Then
+      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", 'Please set:' & @CRLF & 'ALARM_LOW, ALARM_HIGH' & @CRLF & 'or' & @CRLF & 'ALARM_URGENT_LOW, ALARM_URGENT_HIGH' & @CRLF & 'in the "Nightscout" application settings' & @CRLF & 'with a "mg/dl" value!')
+   EndIf
 
    ; TrendArrows
    Local $sTrend
@@ -168,7 +215,7 @@ Func _Tooltip()
 
    ; Check mmol/l option
    Local $sCalcGlucose, $sGlucoseMmol, $sLastGlucoseMmol, $sGlucoseResult, $sLastGlucoseResult
-   If $sReadOption = "mmol/l" Then
+   If $sReadOption = "mmol" Then
       ; Calculate mmol/l
       $sCalcGlucose = 0.0555
       $sGlucoseMmol = Int($sGlucose) * $sCalcGlucose
@@ -178,6 +225,15 @@ Func _Tooltip()
    Else
       $sGlucoseResult = Int($sGlucose)
       $sLastGlucoseResult = Int($sLastGlucose)
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose result: " & $sGlucoseResult & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last glucose result: " & $sLastGlucoseResult & @CRLF)
+
+   ; Check valid glucose with msg box
+   Local $sCheckGlucose = StringRegExp($sGlucoseResult, '(^[0-9]{4,})')
+   If $sCheckGlucose Then
+      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", 'Nightscout is not working!')
+      Exit
    EndIf
 
    ; Calculate delta
@@ -194,49 +250,85 @@ Func _Tooltip()
 
    ; Check tooltip alarm
    Local $sAlarm
-
-   If $sGlucoseResult < $sAlertLow Or $sGlucoseResult > $sAlertHigh Then
-      $sAlarm = "2"
+   If Int($sGlucose) <= Int($sAlertLow) Or Int($sGlucose) >= Int($sAlertHigh) Or Int($sGlucose) <= Int($sAlertLowUrgent) Or Int($sGlucose) >= Int($sAlertHighUrgent) Then
+      $sAlarm = "2" ;=Warning icon
    Else
-      $sAlarm = "1"
+      $sAlarm = "1" ;=Info icon
    EndIf
 
    ; Running tooltip
-   If $checkInet <> 1 Or $sGlucoseResult = 0 And $sDelta = 0 Then
-      ToolTip($wrongMsg, @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, $wrongMsg, 3, 2)
-   Else
-      ToolTip("   " & $sDelta & " " & @CR & "   " & $iDateCalc & " min", @DesktopWidth - $sDesktopW, @DesktopHeight - $sDesktopH, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
+   Local $sDesktopWidth = IniRead($sFile, $sIniCategory, $sIniTitleDesktopWidth, $sIniDefaultDesktopWidth)
+   Local $sDesktopHeight = IniRead($sFile, $sIniCategory, $sIniTitleDesktopHeight, $sIniDefaultDesktopHeight)
+
+   ; If 0 min then 1 min
+   If $iDateCalc = 0 Then
+      $iDateCalc = 1
    EndIf
 
-   Sleep($sInterval)
+   If $checkInet <> 1 Or $sGlucoseResult = 0 And $sDelta = 0 Then
+      ToolTip($wrongMsg, @DesktopWidth - $sDesktopWidth, @DesktopHeight - $sDesktopHeight, $wrongMsg, 3, 2)
+   Else
+      ToolTip("   " & $sDelta & " " & @CR & "   " & $iDateCalc & " min", @DesktopWidth - $sDesktopWidth, @DesktopHeight - $sDesktopHeight, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
+   EndIf
+
+   Sleep($sReadInterval)
 
 EndFunc
 
-; TrayMenu
-Opt("TrayAutoPause", 0) ; The script will not pause when selecting the tray icon.
-Opt("TrayMenuMode", 2)
+; Start TrayMenu with tooltip
+_TrayMenu()
 
-Local $idNightscout = TrayCreateItem("Nightscout")
-TrayCreateItem("") ; ------
-Local $idSettings = TrayCreateItem("Settings")
-TrayItemSetText($TRAY_ITEM_PAUSE, "Pause") ; Set the text of the default 'Pause' item.
-TrayItemSetText($TRAY_ITEM_EXIT, "Close app")
+Func _TrayMenu()
+   TrayCreateItem("Nightscout")
+   TrayItemSetOnEvent(-1, "_Nightscout")
+   TrayCreateItem("") ; Create a separator line.
+   TrayCreateItem("Settings")
+   TrayItemSetOnEvent(-1, "_Settings")
+   TrayCreateItem("") ; Create a separator line.
+   TrayCreateItem("Close app")
+   TrayItemSetOnEvent(-1, "_Exit")
+   TraySetState($TRAY_ICONSTATE_SHOW) ; Show the tray menu.
 
-TraySetState()
+   While 1
+      _Tooltip() ; An idle loop.
+   WEnd
+EndFunc
 
-While 1
-   Local $msg = TrayGetMsg()
-   Select
-      Case $msg = 0
-         _Tooltip()
-         ContinueLoop
-      Case $msg = $idNightscout
-         ShellExecute($sDomain)
-      Case $msg = $idSettings
-         _FileOpenAndRestart()
-   EndSelect
-WEnd
+; Set function for buttons in TrayMenu
+Func _Nightscout()
+   ShellExecute($sInputDomain)
+EndFunc
 
-; Close File/WinHttp
+; Set settings in GUI
+Func _Settings()
+   Global $hSave, $msg
+   GUICreate($sIniCategory, 320, 155, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
+   GUICtrlCreateLabel($sIniTitleNightscout, 10, 5, 70)
+   Global $hInputDomain = GUICtrlCreateInput($sInputDomain, 10, 20, 300, 20)
+   GUICtrlCreateLabel($sIniTitleDesktopWidth, 10, 45, 140)
+   Global $hInputDesktopWidth = GUICtrlCreateInput($sInputDesktopWidth, 10, 60, 50, 20, $ES_NUMBER)
+   GUICtrlCreateLabel($sIniTitleDesktopHeight, 10, 85, 140)
+   Global $hInputDesktopHeight = GUICtrlCreateInput($sInputDesktophHeight, 10, 100, 50, 20, $ES_NUMBER)
+   $hSave = GUICtrlCreateButton("Save", 10, 125, 300, 20)
+   GUISetState()
+   $msg = 0
+   While $msg <> $GUI_EVENT_CLOSE
+      $msg = GUIGetMsg()
+      Select
+         Case $msg = $hSave
+            IniWrite($sFile, $sIniCategory, $sIniTitleNightscout, GUICtrlRead($hInputDomain))
+            IniWrite($sFile, $sIniCategory, $sIniTitleDesktopWidth, GUICtrlRead($hInputDesktopWidth))
+            IniWrite($sFile, $sIniCategory, $sIniTitleDesktopHeight, GUICtrlRead($hInputDesktopHeight))
+            _Restart()
+         Case $msg = $GUI_EVENT_CLOSE
+            GUIDelete($sIniCategory)
+      EndSelect
+   WEnd
+EndFunc
+
+Func _Exit()
+   Exit
+EndFunc
+
+; Close WinHttp
 _WinHttpCloseHandle($hConnect)
-FileClose($hFileOpen)
