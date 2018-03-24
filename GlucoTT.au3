@@ -2,17 +2,14 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.0.0.0
+   #AutoIt3Wrapper_Res_Fileversion=2.1.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <WinHttp.au3>
-#include <MsgBoxConstants.au3>
-#include <FileConstants.au3>
 #include <TrayConstants.au3>
-#include <StringConstants.au3>
 #include <Include\CheckUpdate.au3>
-#include <WinAPIFiles.au3>
+#include <Date.au3>
 
 Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
 Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
@@ -83,11 +80,9 @@ Func _Tooltip()
 
    ; Check connection
    Local $checkInet = _CheckConnection()
-   Local $wrongMsg
 
-   If $checkInet <> 1 Then
-      $wrongMsg = "✕"
-   EndIf
+   ; Set wrong msg in tooltip
+   Local $wrongMsg = "✕"
 
    ; Make a SimpleSSL request
    Local $hRequestSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPage)
@@ -104,7 +99,7 @@ Func _Tooltip()
    Local $sText = StringRegExpReplace($sFirstTextLine, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $sGlucose = StringRegExpReplace($sText, "[^0-9]+", "")
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose: " & $sGlucose & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose : " & $sGlucose & @CRLF)
    Local $sLastGlucose = StringRegExpReplace($sLastText, "[^0-9]+", "")
 
    ; Check time readings
@@ -114,7 +109,12 @@ Func _Tooltip()
    Local $sHour = StringMid($sFirstTextLine, 12, 2)
    Local $sMin = StringMid($sFirstTextLine, 15, 2)
    Local $sSec = StringMid($sFirstTextLine, 18, 2)
-   Local $iDateCalc = _DateDiff('n', $sYear & "/" & $sMonth & "/" & $sDay & " " & $sHour & ":" & $sMin & ":" & $sSec, _NowCalc())
+   Local $sLastYearMonthDayHourMinSec = $sYear & "/" & $sMonth & "/" & $sDay & " " & $sHour & ":" & $sMin & ":" & $sSec
+   Local $sCurrentYearMonthDayHourMinSec = @YEAR & "/" & @MON & "/" & @MDAY & " " & @HOUR & ":" & @MIN & ":" & @SEC
+
+   ; Reading last glucose (min)
+   Local $sLastReadingGlucoseMin = _DateDiff('n', $sLastYearMonthDayHourMinSec, $sCurrentYearMonthDayHourMinSec)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last reading glucose (min) : " & $sLastReadingGlucoseMin & @CRLF)
 
    ; Settings check for json: urgentRes
    Local $sReadIntervalMin = StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),".*', '\1')
@@ -122,34 +122,27 @@ Func _Tooltip()
    If $checkReadIntervalMin = 1 Then
       $sReadIntervalMin = StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (min): " & $sReadIntervalMin & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (min) : " & $sReadIntervalMin & @CRLF)
 
-   ; Calculate read interval
-   Local $sReadDiffMin = Int($sReadIntervalMin) - Int($iDateCalc)
+   ; Interval for loop interval to read glucose
+   Local $sReadInterval = 60000
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (ms) : " & $sReadInterval & @CRLF)
 
-   ; Check negative minutes and replace "-"
-   If $sReadDiffMin < 0 Then
-      $sReadDiffMin = StringReplace($sReadDiffMin, "-", "")
+   ; Settings check for json: status
+   Local $sStatus = StringRegExpReplace($sReturnedJson, '.*"status":"([^"]+)",.*', '\1')
+   Local $checkStatus = StringRegExp($sStatus, '([{"A-Z0-9abcdefghijlmnpqrstuvwxyz}:,-.])')
+   If $checkStatus = 1 Then
+      $sStatus = StringRegExpReplace($sReturnedJson, '.*"status":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read diff (min): " & $sReadDiffMin & @CRLF)
-
-   Local $sReadIntervalMs = Int($sReadDiffMin) * 60000
-   Local $sReadInterval = Int($sReadIntervalMs) - Int($sReadIntervalMs) + 60000
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Status : " & $sStatus & @CRLF)
 
    ; Settings check for json: units
    Local $sReadOption = StringRegExpReplace($sReturnedJson, '.*"units":"([^"]+)",.*', '\1')
-   Local $checkReadOption = StringRegExp($sReadOption, '([{"A-Z0-9abcefhijknpqrstuvwxyz}:,])')
+   Local $checkReadOption = StringRegExp($sReadOption, '([{"A-Z0-9abcefhijknpqrstuvwxyz}:,-.])')
    If $checkReadOption = 1 Then
       $sReadOption = StringRegExpReplace($sReturnedJson, '.*"units":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Units: " & $sReadOption & @CRLF)
-
-   ; Check mmol or mg/dl
-   Local $checkReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
-
-   If Not $checkReadOptionValues Then
-      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", 'Wrong read option!' & @CRLF & 'Please set:' & @CRLF & 'DISPLAY_UNITS' & @CRLF & 'in the "Nightscout" application settings' & @CRLF & 'with a "mmol" or "mg/dl" value!')
-   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Units : " & $sReadOption & @CRLF)
 
    ; Alarm settings check for json: alarmLow
    Local $sAlertLow = StringRegExpReplace($sReturnedJson, '.*"alarmLow":"([^"]+)",".*', '\1')
@@ -157,7 +150,7 @@ Func _Tooltip()
    If $checkAlertLow = 1 Then
       $sAlertLow = StringRegExpReplace($sReturnedJson, '.*"alarmLow":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Low: " & $sAlertLow & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Low : " & $sAlertLow & @CRLF)
 
    ; Alarm settings check for json: alarmHigh
    Local $sAlertHigh = StringRegExpReplace($sReturnedJson, '.*"alarmHigh":"([^"]+)",".*', '\1')
@@ -165,7 +158,7 @@ Func _Tooltip()
    If $checkAlertHigh = 1 Then
       $sAlertHigh = StringRegExpReplace($sReturnedJson, '.*"alarmHigh":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " High: " & $sAlertHigh & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " High : " & $sAlertHigh & @CRLF)
 
    ; Alarm settings check for json: alarmUrgentLow
    Local $sAlertLowUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":"([^"]+)",".*', '\1')
@@ -173,7 +166,7 @@ Func _Tooltip()
    If $checkAlertLowUrgent = 1 Then
       $sAlertLowUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentLow: " & $sAlertLowUrgent & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentLow : " & $sAlertLowUrgent & @CRLF)
 
    ; Alarm settings check for json: alarmUrgentHigh
    Local $sAlertHighUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":"([^"]+)",.*', '\1')
@@ -181,13 +174,7 @@ Func _Tooltip()
    If $checkAlertHighUrgent = 1 Then
       $sAlertHighUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentHigh: " & $sAlertHighUrgent & @CRLF)
-
-   ; Check false alarms and mg/dl values
-   Local $checkAlertValues = StringRegExp($sAlertLow & $sAlertHigh & $sAlertLowUrgent & $sAlertHighUrgent, '([0-9]{1,3})')
-   If Not $checkAlertValues Then
-      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", 'Please set:' & @CRLF & 'ALARM_LOW, ALARM_HIGH' & @CRLF & 'or' & @CRLF & 'ALARM_URGENT_LOW, ALARM_URGENT_HIGH' & @CRLF & 'in the "Nightscout" application settings' & @CRLF & 'with a "mg/dl" value!')
-   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentHigh : " & $sAlertHighUrgent & @CRLF)
 
    ; TrendArrows
    Local $sTrend
@@ -217,28 +204,22 @@ Func _Tooltip()
    Local $sCalcGlucose, $sGlucoseMmol, $sLastGlucoseMmol, $sGlucoseResult, $sLastGlucoseResult
    If $sReadOption = "mmol" Then
       ; Calculate mmol/l
-      $sCalcGlucose = 0.0555
-      $sGlucoseMmol = Int($sGlucose) * $sCalcGlucose
-      $sLastGlucoseMmol = Int($sLastGlucose) * $sCalcGlucose
+      $sCalcGlucose = 18.01559 * 10 / 10
+      $sGlucoseMmol = Int($sGlucose) / $sCalcGlucose
+      $sLastGlucoseMmol = Int($sLastGlucose) / $sCalcGlucose
       $sGlucoseResult = Round($sGlucoseMmol, 1)
       $sLastGlucoseResult = Round($sLastGlucoseMmol, 1)
    Else
       $sGlucoseResult = Int($sGlucose)
       $sLastGlucoseResult = Int($sLastGlucose)
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose result: " & $sGlucoseResult & @CRLF)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last glucose result: " & $sLastGlucoseResult & @CRLF)
-
-   ; Check valid glucose with msg box
-   Local $sCheckGlucose = StringRegExp($sGlucoseResult, '(^[0-9]{4,})')
-   If $sCheckGlucose Then
-      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", 'Nightscout is not working!')
-      Exit
-   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose result : " & $sGlucoseResult & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last glucose result : " & $sLastGlucoseResult & @CRLF)
 
    ; Calculate delta
    Local $sDelta
    Local $sTmpDelta = Round($sGlucoseResult - $sLastGlucoseResult, 1)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Delta : " & $sTmpDelta & @CRLF)
    If $sTmpDelta > 0 Then
       $sDelta = "+" & $sTmpDelta
    Else
@@ -260,18 +241,18 @@ Func _Tooltip()
    Local $sDesktopWidth = IniRead($sFile, $sIniCategory, $sIniTitleDesktopWidth, $sIniDefaultDesktopWidth)
    Local $sDesktopHeight = IniRead($sFile, $sIniCategory, $sIniTitleDesktopHeight, $sIniDefaultDesktopHeight)
 
-   ; If 0 min then 1 min
-   If $iDateCalc = 0 Then
-      $iDateCalc = 1
-   EndIf
-
-   If $checkInet <> 1 Or $sGlucoseResult = 0 And $sDelta = 0 Then
+   ; Check connections to Nightscout
+   Local $sCheckGlucose = StringRegExp($sGlucose, '^([0-9]{1,3})')
+   ; Check values for mmol or mg/dl
+   Local $checkReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
+   If $checkReadOptionValues <> 1 Or $sCheckGlucose <> 1 Or $sStatus <> "ok" Or $checkInet <> 1 Or $sGlucoseResult = 0 And $sDelta = 0 Then
       ToolTip($wrongMsg, @DesktopWidth - $sDesktopWidth, @DesktopHeight - $sDesktopHeight, $wrongMsg, 3, 2)
    Else
-      ToolTip("   " & $sDelta & " " & @CR & "   " & $iDateCalc & " min", @DesktopWidth - $sDesktopWidth, @DesktopHeight - $sDesktopHeight, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
+      ToolTip("   " & $sDelta & " " & @CR & "   " & $sLastReadingGlucoseMin & " min", @DesktopWidth - $sDesktopWidth, @DesktopHeight - $sDesktopHeight, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
    EndIf
 
-   Sleep($sReadInterval)
+   ; Sleep
+   If Mod(@SEC, $sSec) = 0 Then Sleep($sReadInterval)
 
 EndFunc
 
@@ -285,6 +266,9 @@ Func _TrayMenu()
    TrayCreateItem("Settings")
    TrayItemSetOnEvent(-1, "_Settings")
    TrayCreateItem("") ; Create a separator line.
+   TrayCreateItem("Help")
+   TrayItemSetOnEvent(-1, "_Help")
+   TrayCreateItem("") ; Create a separator line.
    TrayCreateItem("Close app")
    TrayItemSetOnEvent(-1, "_Exit")
    TraySetState($TRAY_ICONSTATE_SHOW) ; Show the tray menu.
@@ -297,6 +281,10 @@ EndFunc
 ; Set function for buttons in TrayMenu
 Func _Nightscout()
    ShellExecute($sInputDomain)
+EndFunc
+
+Func _Help()
+   ShellExecute("https://github.com/Matze1985/GlucoTT/wiki")
 EndFunc
 
 ; Set settings in GUI

@@ -1,6 +1,13 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.1.0.0 (24 March, 2018)
+	Change: Change calculation for mg/dl to mmol
+	Add: Help in TrayMenu
+	Change: Cleanup code
+	Change: Sleep for reading interval
+	Change: Last reading in minutes, showing in tooltip, begin from 0 minutes
+	
 v2.0.0.0 (20 March, 2018)
 	Add: Better automatic read glucose interval
 	Add: Read application settings from Nightscout
