@@ -1,6 +1,13 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.2.0.0 (07 April, 2018)
+	Added: Options added in gui settings for "Autostart" and "Update"
+	Added: UDF for Autostart from GlucoTT (https://www.autoitscript.com/forum/topic/124508-_startup-create-startup-entries-in-the-startup-folder-or-registry/)
+	Added: By setting none alarm is no icon in the tooltip available
+	Change: Cleanup code for for mmol (glucose, delta)
+	Change: Cleanup code general
+	
 v2.1.0.0 (24 March, 2018)
 	Change: Change calculation for mg/dl to mmol
 	Add: Help in TrayMenu

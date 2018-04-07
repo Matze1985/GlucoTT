@@ -2,14 +2,14 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.1.0.0
+   #AutoIt3Wrapper_Res_Fileversion=2.2.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <WinHttp.au3>
 #include <TrayConstants.au3>
 #include <Include\CheckUpdate.au3>
-#include <Date.au3>
+#include <Include\_Startup.au3>
 
 Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
 Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
@@ -31,12 +31,10 @@ Func _CheckConnection()
    Return 1
 EndFunc
 
-; Check for updates
-CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
-If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " @error " & @error & @CRLF)
-
 ; Read settings from ini file
+Local $sFilePath = @ScriptDir & "\"
 Local $sFile = "Settings.ini"
+Local $sFileFullPath = $sFilePath & $sFile
 Local $sIniCategory = "Settings"
 Local $sIniTitleNightscout = "Nightscout"
 Local $sIniDefaultNightscout = "https://<account>.azurewebsites.net"
@@ -44,9 +42,29 @@ Local $sIniTitleDesktopWidth = "Desktop width (minus)"
 Local $sIniDefaultDesktopWidth = "43"
 Local $sIniTitleDesktopHeight = "Desktop height (minus)"
 Local $sIniDefaultDesktopHeight = "68"
-Local $sInputDomain = IniRead($sFile, $sIniCategory, $sIniTitleNightscout, $sIniDefaultNightscout)
-Local $sInputDesktopWidth = IniRead($sFile, $sIniCategory, $sIniTitleDesktopWidth, $sIniDefaultDesktopWidth)
-Local $sInputDesktophHeight = IniRead($sFile, $sIniCategory, $sIniTitleDesktopHeight, $sIniDefaultDesktopHeight)
+Local $sIniTitleOptions = "Options"
+Local $sIniTitleAutostart = "Autostart"
+Local $sIniDefaultCheckboxAutostart = "1"
+Local $sIniTitleUpdate = "Update"
+Local $sIniDefaultCheckboxUpdate = "1"
+Local $sInputDomain = IniRead($sFileFullPath, $sIniCategory, $sIniTitleNightscout, $sIniDefaultNightscout)
+Local $sInputDesktopWidth = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, $sIniDefaultDesktopWidth)
+Local $sInputDesktophHeight = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, $sIniDefaultDesktopHeight)
+Local $sCheckboxAutostart = IniRead($sFileFullPath, $sIniCategory, $sIniTitleAutostart, $sIniDefaultCheckboxAutostart)
+Local $sCheckboxUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleUpdate, $sIniDefaultCheckboxUpdate)
+
+; Check for updates
+If $sCheckboxUpdate = "1" Then
+   CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " @error " & @error & @CRLF)
+EndIf
+
+; Check Shortcut state from ini file
+If Int($sCheckboxAutostart) < 4 Then
+   _StartupRegistry_Install() ; Add the running EXE to the Current Users Run registry key.
+Else
+   _StartupRegistry_Uninstall() ; Remove the running EXE from the Current Users Run registry key.
+EndIf
 
 ; Check Domain settings
 Local $checkDomain = StringRegExp($sInputDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\"{"\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?')
@@ -60,6 +78,15 @@ Local $checkNumbers = StringRegExp($sInputDesktopWidth & $sInputDesktophHeight, 
 If Not $checkNumbers Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers allowed in the fields, please check:" & @CRLF & @CRLF & "- Desktop width (minus)" & @CRLF & "- Desktop height (minus)")
    _Settings()
+EndIf
+
+; Check checkbox options
+If $sCheckboxAutostart = 1 Or $sCheckboxAutostart = 4 And $sCheckboxUpdate = 1 Or $sCheckboxUpdate = 4 Then
+Else
+   ShellExecute(@ScriptDir & "\" & $sFile)
+   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers for options allowed, please check your ini file:" & @CRLF & @CRLF & "- Checkbox number: 1 (on)" & @CRLF & "- Checkbox number: 4 (off)")
+   WinWaitClose($sFile)
+   _Restart()
 EndIf
 
 ; After closing restarts the app
@@ -116,16 +143,8 @@ Func _Tooltip()
    Local $sLastReadingGlucoseMin = _DateDiff('n', $sLastYearMonthDayHourMinSec, $sCurrentYearMonthDayHourMinSec)
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last reading glucose (min) : " & $sLastReadingGlucoseMin & @CRLF)
 
-   ; Settings check for json: urgentRes
-   Local $sReadIntervalMin = StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),".*', '\1')
-   Local $checkReadIntervalMin = StringRegExp($sReadIntervalMin, '([A-Za-z,":-{}])')
-   If $checkReadIntervalMin = 1 Then
-      $sReadIntervalMin = StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),.*', '\1')
-   EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (min) : " & $sReadIntervalMin & @CRLF)
-
    ; Interval for loop interval to read glucose
-   Local $sReadInterval = 60000
+   Local $sReadInterval = Int(60000)
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (ms) : " & $sReadInterval & @CRLF)
 
    ; Settings check for json: status
@@ -201,14 +220,17 @@ Func _Tooltip()
    EndIf
 
    ; Check mmol/l option
-   Local $sCalcGlucose, $sGlucoseMmol, $sLastGlucoseMmol, $sGlucoseResult, $sLastGlucoseResult
+   Local $sCalcGlucose, $sGlucoseMmol, $sLastGlucoseMmol, $sGlucoseResult, $sLastGlucoseResult, $sGlucoseResultTmp, $sLastGlucoseResultTmp
    If $sReadOption = "mmol" Then
       ; Calculate mmol/l
-      $sCalcGlucose = 18.01559 * 10 / 10
-      $sGlucoseMmol = Int($sGlucose) / $sCalcGlucose
-      $sLastGlucoseMmol = Int($sLastGlucose) / $sCalcGlucose
-      $sGlucoseResult = Round($sGlucoseMmol, 1)
-      $sLastGlucoseResult = Round($sLastGlucoseMmol, 1)
+      $sCalcGlucose = Number(18.01559 * 10 / 10, 3) ; 3=the result is double
+	  $sGlucoseMmol = Number($sGlucose / $sCalcGlucose, 3) ; 3=the result is double
+	  $sGlucoseResultTmp = Round($sGlucoseMmol, 2) ; Round 0.00
+      $sGlucoseResult = Round($sGlucoseResultTmp, 1) ; Round 0.0
+      ; Calculate last glucose
+      $sLastGlucoseMmol = Number($sLastGlucose / $sCalcGlucose, 3) ; 3=the result is double
+	  $sLastGlucoseResultTmp = Round($sLastGlucoseMmol, 2) ; Round 0.00
+      $sLastGlucoseResult = Round($sLastGlucoseResultTmp, 1) ; Round 0.0
    Else
       $sGlucoseResult = Int($sGlucose)
       $sLastGlucoseResult = Int($sLastGlucose)
@@ -217,16 +239,14 @@ Func _Tooltip()
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last glucose result : " & $sLastGlucoseResult & @CRLF)
 
    ; Calculate delta
-   Local $sDelta
-   Local $sTmpDelta = Round($sGlucoseResult - $sLastGlucoseResult, 1)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Delta : " & $sTmpDelta & @CRLF)
-   If $sTmpDelta > 0 Then
-      $sDelta = "+" & $sTmpDelta
-   Else
-      $sDelta = $sTmpDelta
+   Local $sDeltaTmp = Number($sGlucoseResult - $sLastGlucoseResult, 3) ; 3=the result is double
+   Local $sDelta = Round($sDeltaTmp, 1) ; Round 0.0
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Delta : " & $sDelta & @CRLF)
+   If $sDelta > 0 Then
+      $sDelta = "+" & $sDelta
    EndIf
-   If $sTmpDelta = 0 Then
-      $sDelta = "±" & $sTmpDelta
+   If $sDelta = 0 Then
+      $sDelta = "±" & $sDelta
    EndIf
 
    ; Check tooltip alarm
@@ -236,19 +256,18 @@ Func _Tooltip()
    Else
       $sAlarm = "1" ;=Info icon
    EndIf
-
-   ; Running tooltip
-   Local $sDesktopWidth = IniRead($sFile, $sIniCategory, $sIniTitleDesktopWidth, $sIniDefaultDesktopWidth)
-   Local $sDesktopHeight = IniRead($sFile, $sIniCategory, $sIniTitleDesktopHeight, $sIniDefaultDesktopHeight)
+   If Int($sAlertLow) = 0 And Int($sAlertHigh) = 0 And Int($sAlertLowUrgent) = 0 And Int($sAlertHighUrgent) = 0 Then
+      $sAlarm = "0" ;=None icon
+   EndIf
 
    ; Check connections to Nightscout
    Local $sCheckGlucose = StringRegExp($sGlucose, '^([0-9]{1,3})')
    ; Check values for mmol or mg/dl
    Local $checkReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
-   If $checkReadOptionValues <> 1 Or $sCheckGlucose <> 1 Or $sStatus <> "ok" Or $checkInet <> 1 Or $sGlucoseResult = 0 And $sDelta = 0 Then
-      ToolTip($wrongMsg, @DesktopWidth - $sDesktopWidth, @DesktopHeight - $sDesktopHeight, $wrongMsg, 3, 2)
+   If $checkReadOptionValues <> 1 Or $sCheckGlucose <> 1 Or $checkInet <> 1 Then
+      ToolTip($wrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $wrongMsg, 3, 2)
    Else
-      ToolTip("   " & $sDelta & " " & @CR & "   " & $sLastReadingGlucoseMin & " min", @DesktopWidth - $sDesktopWidth, @DesktopHeight - $sDesktopHeight, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
+      ToolTip("   " & $sDelta & " " & @CR & "   " & $sLastReadingGlucoseMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
    EndIf
 
    ; Sleep
@@ -289,14 +308,19 @@ EndFunc
 
 ; Set settings in GUI
 Func _Settings()
-   Global $hSave, $msg
+   Local $hSave, $msg
    GUICreate($sIniCategory, 320, 155, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
    GUICtrlCreateLabel($sIniTitleNightscout, 10, 5, 70)
-   Global $hInputDomain = GUICtrlCreateInput($sInputDomain, 10, 20, 300, 20)
+   Local $hInputDomain = GUICtrlCreateInput($sInputDomain, 10, 20, 300, 20)
    GUICtrlCreateLabel($sIniTitleDesktopWidth, 10, 45, 140)
-   Global $hInputDesktopWidth = GUICtrlCreateInput($sInputDesktopWidth, 10, 60, 50, 20, $ES_NUMBER)
+   Local $hInputDesktopWidth = GUICtrlCreateInput($sInputDesktopWidth, 10, 60, 50, 20, $ES_NUMBER)
    GUICtrlCreateLabel($sIniTitleDesktopHeight, 10, 85, 140)
-   Global $hInputDesktopHeight = GUICtrlCreateInput($sInputDesktophHeight, 10, 100, 50, 20, $ES_NUMBER)
+   Local $hInputDesktopHeight = GUICtrlCreateInput($sInputDesktophHeight, 10, 100, 50, 20, $ES_NUMBER)
+   GUICtrlCreateLabel($sIniTitleOptions, 200, 45, 140)
+   Local $hCheckboxAutostart = GUICtrlCreateCheckbox($sIniTitleAutostart, 200, 60, 150, 20)
+   GUICtrlSetState($hCheckboxAutostart, $sCheckboxAutostart)
+   Local $hCheckboxUpdate = GUICtrlCreateCheckbox($sIniTitleUpdate, 200, 80, 150, 20)
+   GUICtrlSetState($hCheckboxUpdate, $sCheckboxUpdate)
    $hSave = GUICtrlCreateButton("Save", 10, 125, 300, 20)
    GUISetState()
    $msg = 0
@@ -304,9 +328,11 @@ Func _Settings()
       $msg = GUIGetMsg()
       Select
          Case $msg = $hSave
-            IniWrite($sFile, $sIniCategory, $sIniTitleNightscout, GUICtrlRead($hInputDomain))
-            IniWrite($sFile, $sIniCategory, $sIniTitleDesktopWidth, GUICtrlRead($hInputDesktopWidth))
-            IniWrite($sFile, $sIniCategory, $sIniTitleDesktopHeight, GUICtrlRead($hInputDesktopHeight))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleNightscout, GUICtrlRead($hInputDomain))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, GUICtrlRead($hInputDesktopWidth))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, GUICtrlRead($hInputDesktopHeight))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleAutostart, GUICtrlRead($hCheckboxAutostart))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleUpdate, GUICtrlRead($hCheckboxUpdate))
             _Restart()
          Case $msg = $GUI_EVENT_CLOSE
             GUIDelete($sIniCategory)
