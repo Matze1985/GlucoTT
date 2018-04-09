@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.2.5.0 (09 April, 2018)
+	Added: Text-To-Speech option added for reading glucose values from Open Source UDF (http://www.autoitscript.com/forum/index.php?showtopic=173934)
+	Change: Cleanup code
+	
 v2.2.0.0 (07 April, 2018)
 	Added: Options added in gui settings for "Autostart" and "Update"
 	Added: UDF for Autostart from GlucoTT (https://www.autoitscript.com/forum/topic/124508-_startup-create-startup-entries-in-the-startup-folder-or-registry/)
