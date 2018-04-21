@@ -60,7 +60,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
    ; 					Note: In case of error, just continue with current script...
    ;
    ; Author ........: GreenCan
-   ; Modified.......:
+   ; Modified.......: 14.01.2018 - Matze1985 - Change "backup old file" to "remove old file"
    ; Remarks .......: 		The script version has format x.x.x.x !
    ;						In case the script (or exe) has been renamed (and does not correspond to the original file name),
    ;						The orginal file will not be renamed

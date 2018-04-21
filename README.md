@@ -7,7 +7,12 @@ A simple discrete glucose tooltip for Nightscout under Windows
 
 ![Example 4](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_4.PNG)
 
-The script use the included UDF WinHTTP function (https://github.com/dragana-r/autoit-winhttp)
+## Include
+* [CheckUpdate.au3](https://www.autoitscript.com/forum/topic/162107-checkupdate-autoupdate-a-running-script-or-exe-over-the-web/) by GreenCan
+* [ExtMsgBox.au3](http://www.autoitscript.com/forum/index.php?showtopic=109096) by Melba23, based on some original code by photonbuddy & YellowLab, and KaFu (default font code)
+* [TTS UDF.au3](http://www.autoitscript.com/forum/index.php?showtopic=173934) by Kanashius
+* [WinHttp.au3](http://www.autoitscript.com/forum/index.php?showtopic=84133) by trancexx, ProgAndy
+* [_Startup.au3](https://www.autoitscript.com/forum/topic/124508-_startup-create-startup-entries-in-the-startup-folder-or-registry/) by guinness
 
 When you find errors, please write a ticket!
 

@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.2.5.0
+   #AutoIt3Wrapper_Res_Fileversion=2.3.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -18,7 +18,7 @@ Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
 Opt("WinTitleMatchMode", 2) ;1=start, 2=subStr, 3=exact, 4=advanced, -1 to -4=Nocase
 
 ; App title
-Local $sTitle = "GlucoTT"
+Local $sTitle = StringRegExpReplace(@ScriptName, ".au3|.exe", "")
 
 ; Check for another instance of this program
 If _Singleton($sTitle, 1) = 0 Then
@@ -41,52 +41,55 @@ Local $sIniCategory = "Settings"
 Local $sIniTitleNightscout = "Nightscout"
 Local $sIniDefaultNightscout = "https://<account>.azurewebsites.net"
 Local $sIniTitleDesktopWidth = "Desktop width (minus)"
-Local $sIniDefaultDesktopWidth = "43"
+Local $iIniDefaultDesktopWidth = 43
 Local $sIniTitleDesktopHeight = "Desktop height (minus)"
-Local $sIniDefaultDesktopHeight = "68"
+Local $iIniDefaultDesktopHeight = 68
 Local $sIniTitleOptions = "Options"
 Local $sIniTitleAutostart = "Autostart"
-Local $sIniDefaultCheckboxAutostart = "1"
+Local $iIniDefaultCheckboxAutostart = 1
 Local $sIniTitleUpdate = "Update"
-Local $sIniDefaultCheckboxUpdate = "1"
+Local $iIniDefaultCheckboxUpdate = 1
 Local $sIniTitleTextToSpeech = "TTS"
-Local $sIniDefaultCheckboxTextToSpeech = "4"
+Local $iIniDefaultCheckboxTextToSpeech = 4
+Local $sIniTitlePlayAlarm = "Play alarm"
+Local $iIniDefaultCheckboxPlayAlarm = 4
 Local $sInputDomain = IniRead($sFileFullPath, $sIniCategory, $sIniTitleNightscout, $sIniDefaultNightscout)
-Local $sInputDesktopWidth = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, $sIniDefaultDesktopWidth)
-Local $sInputDesktophHeight = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, $sIniDefaultDesktopHeight)
-Local $sCheckboxAutostart = IniRead($sFileFullPath, $sIniCategory, $sIniTitleAutostart, $sIniDefaultCheckboxAutostart)
-Local $sCheckboxUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleUpdate, $sIniDefaultCheckboxUpdate)
-Local $sCheckboxTextToSpeech = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, $sIniDefaultCheckboxTextToSpeech)
+Local $sInputDesktopWidth = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, $iIniDefaultDesktopWidth)
+Local $sInputDesktophHeight = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, $iIniDefaultDesktopHeight)
+Local $iCheckboxAutostart = IniRead($sFileFullPath, $sIniCategory, $sIniTitleAutostart, $iIniDefaultCheckboxAutostart)
+Local $iCheckboxUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleUpdate, $iIniDefaultCheckboxUpdate)
+Local $iCheckboxTextToSpeech = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, $iIniDefaultCheckboxTextToSpeech)
+Local $iCheckboxPlayAlarm = IniRead($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, $iIniDefaultCheckboxPlayAlarm)
 
 ; Check for updates
-If Int($sCheckboxUpdate) = 1 Then
+If $iCheckboxUpdate = 1 Then
    CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " @error " & @error & @CRLF)
 EndIf
 
 ; Check Shortcut state from ini file
-If Int($sCheckboxAutostart) < 4 Then
+If $iCheckboxAutostart < 4 Then
    _StartupRegistry_Install() ; Add the running EXE to the Current Users Run registry key.
 Else
    _StartupRegistry_Uninstall() ; Remove the running EXE from the Current Users Run registry key.
 EndIf
 
 ; Check Domain settings
-Local $checkDomain = StringRegExp($sInputDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\"{"\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?')
-If Not $checkDomain Then
+Local $iCheckDomain = StringRegExp($sInputDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\"{"\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?')
+If $iCheckDomain = 0 Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong URL for Nightscout set!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://account.azurewebsites.net")
    _Settings()
 EndIf
 
 ; Check desktop width and height settings
-Local $checkNumbers = StringRegExp($sInputDesktopWidth & $sInputDesktophHeight, '^[0-9]+$')
-If Not $checkNumbers Then
+Local $iCheckNumbers = StringRegExp($sInputDesktopWidth & $sInputDesktophHeight, '^[0-9]+$')
+If $iCheckNumbers = 0 Then
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers allowed in the fields, please check:" & @CRLF & @CRLF & "- Desktop width (minus)" & @CRLF & "- Desktop height (minus)")
    _Settings()
 EndIf
 
 ; Check checkbox options
-If Int($sCheckboxAutostart) = 1 Or Int($sCheckboxAutostart) = 4 And Int($sCheckboxUpdate) = 1 Or Int($sCheckboxUpdate) = 4 And Int($sCheckboxTextToSpeech) = 1 Or Int($sCheckboxTextToSpeech) = 4 Then
+If $iCheckboxAutostart = 1 Or $iCheckboxAutostart = 4 And $iCheckboxUpdate = 1 Or $iCheckboxUpdate = 4 And $iCheckboxTextToSpeech = 1 Or $iCheckboxTextToSpeech = 4 And $iCheckboxPlayAlarm = 1 Or $iCheckboxPlayAlarm = 4 Then
 Else
    ShellExecute(@ScriptDir & "\" & $sFile)
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers for options allowed, please check your ini file:" & @CRLF & @CRLF & "- Checkbox number: 1 (on)" & @CRLF & "- Checkbox number: 4 (off)")
@@ -111,10 +114,10 @@ Local $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
 Func _Tooltip()
 
    ; Check connection
-   Local $checkInet = _CheckConnection()
+   Local $iCheckInet = _CheckConnection()
 
    ; Set wrong msg in tooltip
-   Local $wrongMsg = "✕"
+   Local $sWrongMsg = "✕"
 
    ; Make a SimpleSSL request
    Local $hRequestSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPage)
@@ -130,75 +133,84 @@ Func _Tooltip()
    Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	]|(openLibreReader-ios-blueReader-[0-9])|(\.[0-9]{1,4}))"
    Local $sText = StringRegExpReplace($sFirstTextLine, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
-   Local $sGlucose = StringRegExpReplace($sText, "[^0-9]+", "")
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose : " & $sGlucose & @CRLF)
-   Local $sLastGlucose = StringRegExpReplace($sLastText, "[^0-9]+", "")
+   Local $iGlucose = Int(StringRegExpReplace($sText, "[^0-9]+", ""))
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose : " & $iGlucose & @CRLF)
+   Local $iLastGlucose = Int(StringRegExpReplace($sLastText, "[^0-9]+", ""))
 
    ; Check time readings
-   Local $sYear = StringLeft($sFirstTextLine, 4)
-   Local $sMonth = StringMid($sFirstTextLine, 6, 2)
-   Local $sDay = StringMid($sFirstTextLine, 9, 2)
-   Local $sHour = StringMid($sFirstTextLine, 12, 2)
-   Local $sMin = StringMid($sFirstTextLine, 15, 2)
-   Local $sSec = StringMid($sFirstTextLine, 18, 2)
-   Local $sLastYearMonthDayHourMinSec = $sYear & "/" & $sMonth & "/" & $sDay & " " & $sHour & ":" & $sMin & ":" & $sSec
+   Local $iYear = Int(StringLeft($sFirstTextLine, 4))
+   Local $iMonth = Int(StringMid($sFirstTextLine, 6, 2))
+   Local $iDay = Int(StringMid($sFirstTextLine, 9, 2))
+   Local $iHour = Int(StringMid($sFirstTextLine, 12, 2))
+   Local $iMin = Int(StringMid($sFirstTextLine, 15, 2))
+   Local $iSec = Int(StringMid($sFirstTextLine, 18, 2))
+   Local $sLastYearMonthDayHourMinSec = $iYear & "/" & $iMonth & "/" & $iDay & " " & $iHour & ":" & $iMin & ":" & $iSec
    Local $sCurrentYearMonthDayHourMinSec = @YEAR & "/" & @MON & "/" & @MDAY & " " & @HOUR & ":" & @MIN & ":" & @SEC
+   Local $bMod = Mod(@SEC, $iSec) = @SEC
+
+   ; Settings check for json: urgentRes
+   Local $iReadIntervalMin = Int(StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),".*', '\1'))
+   Local $iCheckReadIntervalMin = StringRegExp($iReadIntervalMin, '([A-Za-z,":-{}])')
+   If $iCheckReadIntervalMin = 1 Then
+      $iReadIntervalMin = Int(StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),.*', '\1'))
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (min): " & $iReadIntervalMin & @CRLF)
 
    ; Reading last glucose (min)
-   Local $sLastReadingGlucoseMin = _DateDiff('n', $sLastYearMonthDayHourMinSec, $sCurrentYearMonthDayHourMinSec)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last reading glucose (min) : " & $sLastReadingGlucoseMin & @CRLF)
+   Local $iLastReadingGlucoseMin = _DateDiff('n', $sLastYearMonthDayHourMinSec, $sCurrentYearMonthDayHourMinSec)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last reading glucose (min) : " & $iLastReadingGlucoseMin & @CRLF)
 
    ; Interval for loop interval to read glucose
-   Local $sReadInterval = 60000
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (ms) : " & $sReadInterval & @CRLF)
+   Local $iReadInterval = 60000
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (ms) : " & $iReadInterval & @CRLF)
 
    ; Settings check for json: status
    Local $sStatus = StringRegExpReplace($sReturnedJson, '.*"status":"([^"]+)",.*', '\1')
-   Local $checkStatus = StringRegExp($sStatus, '([{"A-Z0-9abcdefghijlmnpqrstuvwxyz}:,-.])')
-   If $checkStatus = 1 Then
+   Local $iCheckStatus = StringRegExp($sStatus, '([{"A-Z0-9abcdefghijlmnpqrstuvwxyz}:,-.])')
+   If $iCheckStatus = 1 Then
       $sStatus = StringRegExpReplace($sReturnedJson, '.*"status":([^"]+),.*', '\1')
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Status : " & $sStatus & @CRLF)
 
    ; Settings check for json: units
    Local $sReadOption = StringRegExpReplace($sReturnedJson, '.*"units":"([^"]+)",.*', '\1')
-   Local $checkReadOption = StringRegExp($sReadOption, '([{"A-Z0-9abcefhijknpqrstuvwxyz}:,-.])')
-   If $checkReadOption = 1 Then
+   Local $iCheckReadOption = StringRegExp($sReadOption, '([{"A-Z0-9abcefhijknpqrstuvwxyz}:,-.])')
+   If $iCheckReadOption = 1 Then
       $sReadOption = StringRegExpReplace($sReturnedJson, '.*"units":([^"]+),.*', '\1')
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Units : " & $sReadOption & @CRLF)
 
    ; Alarm settings check for json: alarmLow
-   Local $sAlertLow = StringRegExpReplace($sReturnedJson, '.*"alarmLow":"([^"]+)",".*', '\1')
-   Local $checkAlertLow = StringRegExp($sAlertLow, '([A-Za-z,":-{}])')
-   If $checkAlertLow = 1 Then
-      $sAlertLow = StringRegExpReplace($sReturnedJson, '.*"alarmLow":([^"]+),.*', '\1')
+   Local $iAlertLow = Int(StringRegExpReplace($sReturnedJson, '.*"alarmLow":"([^"]+)",".*', '\1'))
+   Local $iCheckAlertLow = StringRegExp($iAlertLow, '([A-Za-z,":-{}])')
+   If $iCheckAlertLow = 1 Then
+      $iAlertLow = Int(StringRegExpReplace($sReturnedJson, '.*"alarmLow":([^"]+),.*', '\1'))
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Low : " & $sAlertLow & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Low : " & $iAlertLow & @CRLF)
 
    ; Alarm settings check for json: alarmHigh
-   Local $sAlertHigh = StringRegExpReplace($sReturnedJson, '.*"alarmHigh":"([^"]+)",".*', '\1')
-   Local $checkAlertHigh = StringRegExp($sAlertHigh, '([A-Za-z,":-{}])')
-   If $checkAlertHigh = 1 Then
-      $sAlertHigh = StringRegExpReplace($sReturnedJson, '.*"alarmHigh":([^"]+),.*', '\1')
+   Local $iAlertHigh = Int(StringRegExpReplace($sReturnedJson, '.*"alarmHigh":"([^"]+)",".*', '\1'))
+   Local $iCheckAlertHigh = StringRegExp($iAlertHigh, '([A-Za-z,":-{}])')
+   If $iCheckAlertHigh = 1 Then
+      $iAlertHigh = Int(StringRegExpReplace($sReturnedJson, '.*"alarmHigh":([^"]+),.*', '\1'))
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " High : " & $sAlertHigh & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " High : " & $iAlertHigh & @CRLF)
 
    ; Alarm settings check for json: alarmUrgentLow
-   Local $sAlertLowUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":"([^"]+)",".*', '\1')
-   Local $checkAlertLowUrgent = StringRegExp($sAlertLowUrgent, '([A-Za-z,":-{}])')
-   If $checkAlertLowUrgent = 1 Then
-      $sAlertLowUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":([^"]+),.*', '\1')
+   Local $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":"([^"]+)",".*', '\1'))
+   Local $iCheckAlertLowUrgent = StringRegExp($iAlertLowUrgent, '([A-Za-z,":-{}])')
+   If $iCheckAlertLowUrgent = 1 Then
+      $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":([^"]+),.*', '\1'))
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentLow : " & $sAlertLowUrgent & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentLow : " & $iAlertLowUrgent & @CRLF)
 
    ; Alarm settings check for json: alarmUrgentHigh
-   Local $sAlertHighUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":"([^"]+)",.*', '\1')
-   Local $checkAlertHighUrgent = StringRegExp($sAlertHighUrgent, '([A-Za-z,":-{}])')
-   If $checkAlertHighUrgent = 1 Then
-      $sAlertHighUrgent = StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":([^"]+),.*', '\1')
+   Local $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":"([^"]+)",.*', '\1'))
+   Local $iCheckAlertHighUrgent = StringRegExp($iAlertHighUrgent, '([A-Za-z,":-{}])')
+   If $iCheckAlertHighUrgent = 1 Then
+      $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":([^"]+),.*', '\1'))
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentHigh : " & $sAlertHighUrgent & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentHigh : " & $iAlertHighUrgent & @CRLF)
 
    ; TrendArrows
    Local $sTrend
@@ -225,68 +237,76 @@ Func _Tooltip()
    EndIf
 
    ; Check mmol/l option
-   Local $sCalcGlucose, $sGlucoseMmol, $sLastGlucoseMmol, $sGlucoseResult, $sLastGlucoseResult, $sGlucoseResultTmp, $sLastGlucoseResultTmp
+   Local $fCalcGlucose, $fGlucoseMmol, $lastGlucoseMmol, $i_fGlucoseResult, $i_fLastGlucoseResult, $fGlucoseResultTmp, $fLastGlucoseResultTmp
    If $sReadOption = "mmol" Then
       ; Calculate mmol/l
-      $sCalcGlucose = Number(18.01559 * 10 / 10, 3) ; 3=the result is double
-      $sGlucoseMmol = Number($sGlucose / $sCalcGlucose, 3) ; 3=the result is double
-      $sGlucoseResultTmp = Round($sGlucoseMmol, 2) ; Round 0.00
-      $sGlucoseResult = Round($sGlucoseResultTmp, 1) ; Round 0.0
+      $fCalcGlucose = Number(18.01559 * 10 / 10, 3) ; 3=the result is double
+      $fGlucoseMmol = Number($iGlucose / $fCalcGlucose, 3) ; 3=the result is double
+      $fGlucoseResultTmp = Round($fGlucoseMmol, 2) ; Round 0.00
+      $i_fGlucoseResult = Round($fGlucoseResultTmp, 1) ; Round 0.0
       ; Calculate last glucose
-      $sLastGlucoseMmol = Number($sLastGlucose / $sCalcGlucose, 3) ; 3=the result is double
-      $sLastGlucoseResultTmp = Round($sLastGlucoseMmol, 2) ; Round 0.00
-      $sLastGlucoseResult = Round($sLastGlucoseResultTmp, 1) ; Round 0.0
+      $fLastGlucoseMmol = Number($iLastGlucose / $fCalcGlucose, 3) ; 3=the result is double
+      $fLastGlucoseResultTmp = Round($fLastGlucoseMmol, 2) ; Round 0.00
+      $i_fLastGlucoseResult = Round($fLastGlucoseResultTmp, 1) ; Round 0.0
    Else
-      $sGlucoseResult = Int($sGlucose)
-      $sLastGlucoseResult = Int($sLastGlucose)
+      $i_fGlucoseResult = Int($iGlucose)
+      $i_fLastGlucoseResult = Int($iLastGlucose)
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose result : " & $sGlucoseResult & @CRLF)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last glucose result : " & $sLastGlucoseResult & @CRLF)
+
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose result : " & $i_fGlucoseResult & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last glucose result : " & $i_fLastGlucoseResult & @CRLF)
 
    ; Calculate delta
-   Local $sDeltaTmp = Number($sGlucoseResult - $sLastGlucoseResult, 3) ; 3=the result is double
-   Local $sDelta = Round($sDeltaTmp, 1) ; Round 0.0
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Delta : " & $sDelta & @CRLF)
-   If $sDelta > 0 Then
-      $sDelta = "+" & $sDelta
+   Local $fDeltaTmp = Number($i_fGlucoseResult - $i_fLastGlucoseResult, 3) ; 3=the result is double
+   Local $s_fDelta = Round($fDeltaTmp, 1) ; Round 0.0
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Delta : " & $s_fDelta & @CRLF)
+   If $s_fDelta > 0 Then
+      $s_fDelta = "+" & $s_fDelta
    EndIf
-   If $sDelta = 0 Then
-      $sDelta = "±" & $sDelta
+   If $s_fDelta = 0 Then
+      $s_fDelta = "±" & $s_fDelta
    EndIf
 
    ; Check tooltip alarm
-   Local $sAlarm
-   If Int($sGlucose) <= Int($sAlertLow) Or Int($sGlucose) >= Int($sAlertHigh) Or Int($sGlucose) <= Int($sAlertLowUrgent) Or Int($sGlucose) >= Int($sAlertHighUrgent) Then
-      $sAlarm = 2 ;=Warning icon
+   Local $iAlarm
+   If $iGlucose <= $iAlertLow Or $iGlucose >= $iAlertHigh Or $iGlucose <= $iAlertLowUrgent Or $iGlucose >= $iAlertHighUrgent Then
+      $iAlarm = 2 ;=Warning icon
+      ; Play alarm from windows media folder (tada.wav)
+      If $iCheckboxPlayAlarm = 1 Then
+         If @MIN = @MIN + $iLastReadingGlucoseMin And $bMod = True Then
+            SoundPlay(@WindowsDir & "\media\tada.wav", 0)
+         EndIf
+      EndIf
    Else
-      $sAlarm = 1 ;=Info icon
+      $iAlarm = 1 ;=Info icon
    EndIf
-   If Int($sAlertLow) = 0 And Int($sAlertHigh) = 0 And Int($sAlertLowUrgent) = 0 And Int($sAlertHighUrgent) = 0 Then
-      $sAlarm = 0 ;=None icon
+   If $iAlertLow = 0 And $iAlertHigh = 0 And $iAlertLowUrgent = 0 And $iAlertHighUrgent = 0 Then
+      $iAlarm = 0 ;=None icon
    EndIf
 
    ; Check connections to Nightscout
-   Local $sCheckGlucose = StringRegExp($sGlucose, '^([0-9]{1,3})')
+   Local $iCheckGlucose = StringRegExp($iGlucose, '^([0-9]{1,3})')
    ; Check values for mmol or mg/dl
-   Local $checkReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
-   If $checkReadOptionValues <> 1 Or $sCheckGlucose <> 1 Or $checkInet <> 1 Then
-      ToolTip($wrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $wrongMsg, 3, 2)
+   Local $iCheckReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
+   If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
+      ToolTip($sWrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $sWrongMsg, 3, 2)
    Else
-      ToolTip("   " & $sDelta & " " & @CR & "   " & $sLastReadingGlucoseMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $sGlucoseResult & " " & $sTrend & "  ", $sAlarm, 2)
+      ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iLastReadingGlucoseMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
    EndIf
 
    ; Check TTS option
-   If Int($sCheckboxTextToSpeech) = 1 Then
-      Local $oSapi = _SpeechObject_Create()
-      Local $sGlucoseTextToSpeech = StringReplace($sGlucoseResult, ".", ",")
-	  ; Read after every zero minutes
-      If Int($sLastReadingGlucoseMin) = 0 Then
+   Local $oSapi = _SpeechObject_Create()
+   Local $sGlucoseTextToSpeech = StringReplace($i_fGlucoseResult, ".", ",")
+
+   If $iCheckboxTextToSpeech = 1 Then
+      ; Read interval (@MIN + last reading glucose)
+      If @MIN = @MIN + $iLastReadingGlucoseMin Then
          _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
       EndIf
    EndIf
 
    ; Sleep
-   If Mod(@SEC, $sSec) = 0 Then Sleep($sReadInterval)
+   If $bMod = True Then Sleep($iReadInterval)
 
 EndFunc
 
@@ -331,13 +351,15 @@ Func _Settings()
    Local $hInputDesktopWidth = GUICtrlCreateInput($sInputDesktopWidth, 10, 60, 50, 20, $ES_NUMBER)
    GUICtrlCreateLabel($sIniTitleDesktopHeight, 10, 85, 140)
    Local $hInputDesktopHeight = GUICtrlCreateInput($sInputDesktophHeight, 10, 100, 50, 20, $ES_NUMBER)
-   GUICtrlCreateLabel($sIniTitleOptions, 200, 45, 140)
-   Local $hCheckboxAutostart = GUICtrlCreateCheckbox($sIniTitleAutostart, 200, 60, 150, 20)
-   GUICtrlSetState($hCheckboxAutostart, $sCheckboxAutostart)
-   Local $hCheckboxUpdate = GUICtrlCreateCheckbox($sIniTitleUpdate, 200, 80, 150, 20)
-   GUICtrlSetState($hCheckboxUpdate, $sCheckboxUpdate)
-   Local $hCheckboxTextToSpeech = GUICtrlCreateCheckbox($sIniTitleTextToSpeech, 200, 100, 150, 20)
-   GUICtrlSetState($hCheckboxTextToSpeech, $sCheckboxTextToSpeech)
+   GUICtrlCreateLabel($sIniTitleOptions, 160, 45, 140)
+   Local $hCheckboxAutostart = GUICtrlCreateCheckbox($sIniTitleAutostart, 160, 60, 60, 20)
+   GUICtrlSetState($hCheckboxAutostart, $iCheckboxAutostart)
+   Local $hCheckboxUpdate = GUICtrlCreateCheckbox($sIniTitleUpdate, 160, 80, 60, 20)
+   GUICtrlSetState($hCheckboxUpdate, $iCheckboxUpdate)
+   Local $hCheckboxTextToSpeech = GUICtrlCreateCheckbox($sIniTitleTextToSpeech, 160, 100, 60, 20)
+   GUICtrlSetState($hCheckboxTextToSpeech, $iCheckboxTextToSpeech)
+   Local $hCheckboxPlayAlarm = GUICtrlCreateCheckbox($sIniTitlePlayAlarm, 230, 60, 80, 20)
+   GUICtrlSetState($hCheckboxPlayAlarm, $iCheckboxPlayAlarm)
    $hSave = GUICtrlCreateButton("Save", 10, 125, 300, 20)
    GUISetState()
    $msg = 0
@@ -351,6 +373,7 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleAutostart, GUICtrlRead($hCheckboxAutostart))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleUpdate, GUICtrlRead($hCheckboxUpdate))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, GUICtrlRead($hCheckboxTextToSpeech))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, GUICtrlRead($hCheckboxPlayAlarm))
             _Restart()
          Case $msg = $GUI_EVENT_CLOSE
             GUIDelete($sIniCategory)

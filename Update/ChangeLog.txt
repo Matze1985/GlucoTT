@@ -1,6 +1,12 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.3.0.0 (21 April, 2018)
+	Change: Changed names of variables (Cleanup code)
+	Change: Changed Text-To-Speech interval (@MIN + last reading glucose)
+	Add: Added option for playing alarm by low or high glucose (@MIN + last reading glucose)
+	Change: Changed modulus operation for better interval readings
+
 v2.2.5.0 (09 April, 2018)
 	Added: Text-To-Speech option added for reading glucose values from Open Source UDF (http://www.autoitscript.com/forum/index.php?showtopic=173934)
 	Change: Cleanup code
