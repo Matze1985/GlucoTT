@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.3.5.0 (30 April, 2018)
+	Add: Donate button added in settings
+	Add: Added the last missing include au3 files on GitHub
+
 v2.3.0.0 (21 April, 2018)
 	Change: Changed names of variables (Cleanup code)
 	Change: Changed Text-To-Speech interval (@MIN + last reading glucose)

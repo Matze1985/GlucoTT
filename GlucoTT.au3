@@ -2,9 +2,10 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.3.0.0
+   #AutoIt3Wrapper_Res_Fileversion=2.3.5.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
+   #AutoIt3Wrapper_Run_Tidy=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <TrayConstants.au3>
 #include <Include\CheckUpdate.au3>
@@ -343,7 +344,7 @@ EndFunc
 
 ; Set settings in GUI
 Func _Settings()
-   Local $hSave, $msg
+   Local $hSave, $hDonate, $msg
    GUICreate($sIniCategory, 320, 155, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
    GUICtrlCreateLabel($sIniTitleNightscout, 10, 5, 70)
    Local $hInputDomain = GUICtrlCreateInput($sInputDomain, 10, 20, 300, 20)
@@ -360,6 +361,7 @@ Func _Settings()
    GUICtrlSetState($hCheckboxTextToSpeech, $iCheckboxTextToSpeech)
    Local $hCheckboxPlayAlarm = GUICtrlCreateCheckbox($sIniTitlePlayAlarm, 230, 60, 80, 20)
    GUICtrlSetState($hCheckboxPlayAlarm, $iCheckboxPlayAlarm)
+   $hDonate = GUICtrlCreateButton("Donate", 230, 80, 80, 40)
    $hSave = GUICtrlCreateButton("Save", 10, 125, 300, 20)
    GUISetState()
    $msg = 0
@@ -375,6 +377,8 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, GUICtrlRead($hCheckboxTextToSpeech))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, GUICtrlRead($hCheckboxPlayAlarm))
             _Restart()
+         Case $msg = $hDonate
+            ShellExecute("https://www.paypal.me/MathiasN")
          Case $msg = $GUI_EVENT_CLOSE
             GUIDelete($sIniCategory)
       EndSelect
