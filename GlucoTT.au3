@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.3.5.0
+   #AutoIt3Wrapper_Res_Fileversion=2.3.6.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -131,7 +131,7 @@ Func _Tooltip()
    ; Match result variables from page
    Local $sFirstTextLine = StringRegExpReplace($sReturned, "(.*$)", "")
    Local $sSecondTextLine = StringRegExpReplace($sReturned, "(\A.*)", "")
-   Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	]|(openLibreReader-ios-blueReader-[0-9])|(\.[0-9]{1,4}))"
+   Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	])|(openLibreReader-ios-blueReader-[0-9])|(xDrip-DexcomG[0-9])"
    Local $sText = StringRegExpReplace($sFirstTextLine, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $iGlucose = Int(StringRegExpReplace($sText, "[^0-9]+", ""))

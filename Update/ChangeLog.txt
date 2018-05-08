@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.3.6.0 (08 May, 2018)
+	Add: Added regex tooltip support for Dexcom G5
+
 v2.3.5.0 (30 April, 2018)
 	Add: Donate button added in settings
 	Add: Added the last missing include au3 files on GitHub
