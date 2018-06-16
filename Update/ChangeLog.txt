@@ -1,6 +1,11 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.5.0.0 (16 June, 2018)
+	Change: Bugfixes
+	Change: Fix for sorting error (for reading glucose)
+	Change: Alarm options (BG_TARGET_BOTTOM, BG_TARGET_TOP and BG_HIGH, BG_LOW) ** Read in wiki [02] ** 
+
 v2.3.6.0 (08 May, 2018)
 	Add: Added regex tooltip support for Dexcom G5
 

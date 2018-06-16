@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.3.6.0
+   #AutoIt3Wrapper_Res_Fileversion=2.5.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -105,8 +105,9 @@ Func _Restart()
 EndFunc
 
 ; API-Pages
-Local $sPage = "/api/v1/entries/sgv?count=2"
-Local $sJsonState = "/api/v1/status.json"
+Local $sPageCurrent = "/api/v1/entries/current"
+Local $sPageCount = "/api/v1/entries/sgv?count=2"
+Local $sPageJsonState = "/api/v1/status.json"
 
 ; Initialize and get session handle and get connection handle
 Local $hOpen = _WinHttpOpen()
@@ -121,41 +122,36 @@ Func _Tooltip()
    Local $sWrongMsg = "✕"
 
    ; Make a SimpleSSL request
-   Local $hRequestSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPage)
-   Local $hRequestJsonSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sJsonState)
+   Local $hRequestPageCurrentSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageCurrent)
+   Local $hRequestPageCountSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageCount)
+   Local $hRequestPageJsonStateSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonState)
 
    ; Read RequestSSL
-   Local $sReturned = _WinHttpSimpleReadData($hRequestSSL)
-   Local $sReturnedJson = _WinHttpSimpleReadData($hRequestJsonSSL)
+   Local $sReturnedPageCurrent = _WinHttpSimpleReadData($hRequestPageCurrentSSL)
+   Local $sReturnedPageCount = _WinHttpSimpleReadData($hRequestPageCountSSL)
+   Local $sReturnedPageJsonState = _WinHttpSimpleReadData($hRequestPageJsonStateSSL)
 
    ; Match result variables from page
-   Local $sFirstTextLine = StringRegExpReplace($sReturned, "(.*$)", "")
-   Local $sSecondTextLine = StringRegExpReplace($sReturned, "(\A.*)", "")
+   Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCurrent, "")
    Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	])|(openLibreReader-ios-blueReader-[0-9])|(xDrip-DexcomG[0-9])"
-   Local $sText = StringRegExpReplace($sFirstTextLine, $sCountMatch, " ")
+   Local $sText = StringRegExpReplace($sReturnedPageCurrent, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $iGlucose = Int(StringRegExpReplace($sText, "[^0-9]+", ""))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose : " & $iGlucose & @CRLF)
    Local $iLastGlucose = Int(StringRegExpReplace($sLastText, "[^0-9]+", ""))
 
    ; Check time readings
-   Local $iYear = Int(StringLeft($sFirstTextLine, 4))
-   Local $iMonth = Int(StringMid($sFirstTextLine, 6, 2))
-   Local $iDay = Int(StringMid($sFirstTextLine, 9, 2))
-   Local $iHour = Int(StringMid($sFirstTextLine, 12, 2))
-   Local $iMin = Int(StringMid($sFirstTextLine, 15, 2))
-   Local $iSec = Int(StringMid($sFirstTextLine, 18, 2))
+   Local $iYear = Int(StringLeft($sReturnedPageCurrent, 4))
+   Local $iMonth = Int(StringMid($sReturnedPageCurrent, 6, 2))
+   Local $iDay = Int(StringMid($sReturnedPageCurrent, 9, 2))
+   Local $iHour = Int(StringMid($sReturnedPageCurrent, 12, 2))
+   Local $iMin = Int(StringMid($sReturnedPageCurrent, 15, 2))
+   Local $iSec = Int(StringMid($sReturnedPageCurrent, 18, 2))
    Local $sLastYearMonthDayHourMinSec = $iYear & "/" & $iMonth & "/" & $iDay & " " & $iHour & ":" & $iMin & ":" & $iSec
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last time on server: " & $sLastYearMonthDayHourMinSec & @CRLF)
    Local $sCurrentYearMonthDayHourMinSec = @YEAR & "/" & @MON & "/" & @MDAY & " " & @HOUR & ":" & @MIN & ":" & @SEC
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Local time: " & $sCurrentYearMonthDayHourMinSec & @CRLF)
    Local $bMod = Mod(@SEC, $iSec) = @SEC
-
-   ; Settings check for json: urgentRes
-   Local $iReadIntervalMin = Int(StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),".*', '\1'))
-   Local $iCheckReadIntervalMin = StringRegExp($iReadIntervalMin, '([A-Za-z,":-{}])')
-   If $iCheckReadIntervalMin = 1 Then
-      $iReadIntervalMin = Int(StringRegExpReplace($sReturnedJson, '.*"urgentRes":([^"]+),.*', '\1'))
-   EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (min): " & $iReadIntervalMin & @CRLF)
 
    ; Reading last glucose (min)
    Local $iLastReadingGlucoseMin = _DateDiff('n', $sLastYearMonthDayHourMinSec, $sCurrentYearMonthDayHourMinSec)
@@ -166,50 +162,50 @@ Func _Tooltip()
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (ms) : " & $iReadInterval & @CRLF)
 
    ; Settings check for json: status
-   Local $sStatus = StringRegExpReplace($sReturnedJson, '.*"status":"([^"]+)",.*', '\1')
-   Local $iCheckStatus = StringRegExp($sStatus, '([{"A-Z0-9abcdefghijlmnpqrstuvwxyz}:,-.])')
-   If $iCheckStatus = 1 Then
-      $sStatus = StringRegExpReplace($sReturnedJson, '.*"status":([^"]+),.*', '\1')
+   Local $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":"([^"]+)",.*', '\1')
+   Local $iCheckStatus = StringRegExp($sStatus, '(ok)')
+   If $iCheckStatus = 0 Then
+      $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":([^"]+),.*', '\1')
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Status : " & $sStatus & @CRLF)
 
    ; Settings check for json: units
-   Local $sReadOption = StringRegExpReplace($sReturnedJson, '.*"units":"([^"]+)",.*', '\1')
-   Local $iCheckReadOption = StringRegExp($sReadOption, '([{"A-Z0-9abcefhijknpqrstuvwxyz}:,-.])')
-   If $iCheckReadOption = 1 Then
-      $sReadOption = StringRegExpReplace($sReturnedJson, '.*"units":([^"]+),.*', '\1')
+   Local $sReadOption = StringRegExpReplace($sReturnedPageJsonState, '.*"units":"([^"]+)",.*', '\1')
+   Local $iCheckReadOption = StringRegExp($sReadOption, '(mmol|mg\/dl)')
+   If $iCheckReadOption = 0 Then
+      $sReadOption = StringRegExpReplace($sReturnedPageJsonState, '.*"units":([^"]+),.*', '\1')
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Units : " & $sReadOption & @CRLF)
 
-   ; Alarm settings check for json: alarmLow
-   Local $iAlertLow = Int(StringRegExpReplace($sReturnedJson, '.*"alarmLow":"([^"]+)",".*', '\1'))
+   ; Alarm settings check for json: alarm bgLow
+   Local $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgLow":([^"]+)}.*', '\1'))
    Local $iCheckAlertLow = StringRegExp($iAlertLow, '([A-Za-z,":-{}])')
-   If $iCheckAlertLow = 1 Then
-      $iAlertLow = Int(StringRegExpReplace($sReturnedJson, '.*"alarmLow":([^"]+),.*', '\1'))
+   If $iCheckAlertLow = 0 Then
+      $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgLow":([^"]+)},.*', '\1'))
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Low : " & $iAlertLow & @CRLF)
 
-   ; Alarm settings check for json: alarmHigh
-   Local $iAlertHigh = Int(StringRegExpReplace($sReturnedJson, '.*"alarmHigh":"([^"]+)",".*', '\1'))
+   ; Alarm settings check for json: alarm bgHigh
+   Local $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgHigh":([^"]+)}.*', '\1'))
    Local $iCheckAlertHigh = StringRegExp($iAlertHigh, '([A-Za-z,":-{}])')
-   If $iCheckAlertHigh = 1 Then
-      $iAlertHigh = Int(StringRegExpReplace($sReturnedJson, '.*"alarmHigh":([^"]+),.*', '\1'))
+   If $iCheckAlertHigh = 0 Then
+      $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgHigh":([^"]+),.*', '\1'))
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " High : " & $iAlertHigh & @CRLF)
 
-   ; Alarm settings check for json: alarmUrgentLow
-   Local $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":"([^"]+)",".*', '\1'))
+   ; Alarm settings check for json: alarm UrgentLow for bgTargetBottom
+   Local $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetBottom":([^"]+)}.*', '\1'))
    Local $iCheckAlertLowUrgent = StringRegExp($iAlertLowUrgent, '([A-Za-z,":-{}])')
-   If $iCheckAlertLowUrgent = 1 Then
-      $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedJson, '.*"alarmUrgentLow":([^"]+),.*', '\1'))
+   If $iCheckAlertLowUrgent = 0 Then
+      $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetBottom":([^"]+),.*', '\1'))
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentLow : " & $iAlertLowUrgent & @CRLF)
 
-   ; Alarm settings check for json: alarmUrgentHigh
-   Local $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":"([^"]+)",.*', '\1'))
+   ; Alarm settings check for json: alarm UrgentHigh for bgTargetTop
+   Local $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetTop":([^"]+)}.*', '\1'))
    Local $iCheckAlertHighUrgent = StringRegExp($iAlertHighUrgent, '([A-Za-z,":-{}])')
-   If $iCheckAlertHighUrgent = 1 Then
-      $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedJson, '.*"alarmUrgentHigh":([^"]+),.*', '\1'))
+   If $iCheckAlertHighUrgent = 0 Then
+      $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetTop":([^"]+),.*', '\1'))
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentHigh : " & $iAlertHighUrgent & @CRLF)
 
