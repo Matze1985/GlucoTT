@@ -15,9 +15,13 @@
 ;	You have to compile the script using wrapper functions, because the version number is fetched with FileGetVersion()
 ;----------------------------------------------------------------------------------------------------------------------------------
 ;	Author ........: GreenCan
-;   Modified.......: 14.01.2018 - Matze1985 - Change normal MsgBox to Extended Message Box
+;   Modified.......: 20.06.2018 - Matze1985 - Adding logging date and time an for better debugging
+;	................ 14.01.2018 - Matze1985 - Change normal MsgBox to Extended Message Box
 ; 	UDF-URL........: https://www.autoitscript.com/forum/topic/162107-checkupdate-autoupdate-a-running-script-or-exe-over-the-web/
 ;----------------------------------------------------------------------------------------------------------------------------------
+
+; Locals
+Local $sLogTime = @MDAY & "-" & @MON & "-" & @YEAR & "-" & @HOUR & ":" & @MIN & ":" & @SEC
 
 ; Globals
 Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
@@ -95,7 +99,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
       Local $procwatchPID, $aVersion, $iNewVersion, $iCurrentVersion, $iBufferSize = 0x80000, $iCRC, $iCRC32 = 0, $sData, $FileSize, $i_FileSize, $hFile
       $sINI_Data = InetRead($sUpdateINI, $InetForceReload) ; get the ini file
       If Not @error Then
-         If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Update file found" & @CRLF)
+         If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Update file found" & @CRLF)
          $sINI_Data = BinaryToString($sINI_Data)
          ; read the ini file in memory
          $sNewVersion = IniMemoryRead($sINI_Data, $sFileToUpdate, "version", "")
@@ -107,7 +111,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
             $iCRC = IniMemoryRead($sINI_Data, $sFileToUpdate, "CRC", 0)
             $sChangesURL = IniMemoryRead($sINI_Data, $sFileToUpdate, "changes", 0)
 
-            If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Application version: Current: " & $sCurrentVersion & " - New: " & $sNewVersion & "<" & @CRLF)
+            If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : " & $sCurrentVersion & " - New: " & $sNewVersion & "<" & @CRLF)
 
             ; convert version x.x.x.x to a number where each x can go up to 999, so the max number can be 999 999 999 999
             ; so version 1.0.1.29 will be converted to 1000001029  (001.000.001.029)
@@ -149,7 +153,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
 
                If $Return = 7 Then ;  download
                   _PathSplit($sFileToUpdate, $szDrive, $szDir, $szFName, $szExt)
-                  If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : Downloading " & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt & @CRLF)
+                  If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Downloading " & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt & @CRLF)
                   InetgetProgress($sURL, @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt)
                   If @error Then
                      _ExtMsgBox(16, $MB_OK, "Error", "Download failure " & @CR & _
@@ -181,7 +185,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                                  FileDelete(@ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt) ; delete the file because it may be corrupt
                            Return SetError(7, 0, 0)
                         Else
-                           If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : CRC Checksum successful " & Hex($iCRC32, 8) & @CRLF)
+                           If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : CRC Checksum successful " & Hex($iCRC32, 8) & @CRLF)
                            ; download successful, exit this program just after starting the temporary batch file that does following:
                            ; 1. wait for a few seconds to enable to current script to Exit (using ping trick)
                            ; 2. delete old file
@@ -216,19 +220,19 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                      EndIf
                   EndIf
                Else
-                  If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " User refused Update" & @CRLF)
+                  If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : User refused Update" & @CRLF)
                   Return SetError(2, 0, 0)
                EndIf
             Else
-               If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " No newer version available" & @CRLF)
+               If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : No newer version available" & @CRLF)
                Return SetError(1, 0, 0)
             EndIf
          Else
-            If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Version info not available in Update file" & @CRLF)
+            If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Version info not available in Update file" & @CRLF)
             Return SetError(4, 0, 0)
          EndIf
       Else
-         If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Update file not available" & @CRLF)
+         If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Update file not available" & @CRLF)
          Return SetError(3, 0, 0)
       EndIf
 
@@ -374,7 +378,7 @@ Func InetgetProgress($sURL, $sFilename)
    _PathSplit($sURL, $szDrive, $szDir, $szFName, $szExt)
    $iSize = InetGetSize($sURL)
    $iTotalSize = Round($iSize / 1024)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : $szFName & $szExt: " & $szFName & $szExt & " $sURL: " & $sURL & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : $szFName & $szExt: " & $szFName & $szExt & " $sURL: " & $sURL & @CRLF)
    $hDownload = InetGet($sURL, $sFilename, 16, 1) ; from InetConstants.au3:  $INET_FORCEBYPASS (16) = By-pass forcing the connection online, $INET_DOWNLOADBACKGROUND (1) = Background download
    ProgressOn("Download " & $szFName & $szExt, "Download progress")
    Do

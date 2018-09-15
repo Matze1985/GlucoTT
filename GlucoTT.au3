@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.5.5.0
+   #AutoIt3Wrapper_Res_Fileversion=2.6.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -41,6 +41,8 @@ Local $sFileFullPath = $sFilePath & $sFile
 Local $sIniCategory = "Settings"
 Local $sIniTitleNightscout = "Nightscout"
 Local $sIniDefaultNightscout = "https://<account>.azurewebsites.net"
+Local $sIniTitleGithubAccount = "Update-Check for cgm-remote-monitor"
+Local $sIniDefaultGithubAccount = "GitHub-Account"
 Local $sIniTitleDesktopWidth = "Desktop width (minus)"
 Local $iIniDefaultDesktopWidth = 43
 Local $sIniTitleDesktopHeight = "Desktop height (minus)"
@@ -61,11 +63,22 @@ Local $iCheckboxAutostart = IniRead($sFileFullPath, $sIniCategory, $sIniTitleAut
 Local $iCheckboxUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleUpdate, $iIniDefaultCheckboxUpdate)
 Local $iCheckboxTextToSpeech = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, $iIniDefaultCheckboxTextToSpeech)
 Local $iCheckboxPlayAlarm = IniRead($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, $iIniDefaultCheckboxPlayAlarm)
+Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, $sIniDefaultGithubAccount)
+
+; Check empty input for Nightscout
+If StringRegExp($sInputDomain, '^\s*$') Then
+   $sInputDomain = $sIniDefaultNightscout
+EndIf
+
+; Check empty input for GitHub-User
+If StringRegExp($sInputGithubAccount, '^\s*$') Then
+   $sInputGithubAccount = $sIniDefaultGithubAccount
+EndIf
 
 ; Check for updates
 If $iCheckboxUpdate = 1 Then
    CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " @error " & @error & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : @error " & @error & @CRLF)
 EndIf
 
 ; Check Shortcut state from ini file
@@ -98,22 +111,32 @@ Else
    _Restart()
 EndIf
 
+; Check GitHub-Account
+Local $iCheckGithub = StringRegExp($sInputGithubAccount, '^[A-Za-z0-9_-]{3,15}$')
+If $iCheckGithub = 0 Then
+   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong GitHub Username!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://github.com/USERNAME" & @CRLF & @CRLF & "For no update check remove the GitHub-Account and save settings!")
+   _Settings()
+EndIf
+
 ; After closing restarts the app
 Func _Restart()
    Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
    Exit
 EndFunc
 
-; API-Pages
-Local $sPageCountCurrent = "/api/v1/entries/sgv?count=1"
-Local $sPageCount = "/api/v1/entries/sgv?count=2"
-Local $sPageJsonState = "/api/v1/status.json"
-
-; Initialize and get session handle and get connection handle
-Local $hOpen = _WinHttpOpen()
-Local $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
+; Check 1st start cgm-remote-monitor update
+_CgmUpdateCheck()
 
 Func _Tooltip()
+
+   ; API-Pages
+   Local $sPageCountCurrent = "/api/v1/entries/sgv?count=1"
+   Local $sPageCount = "/api/v1/entries/sgv?count=2"
+   Local $sPageJsonState = "/api/v1/status.json"
+
+   ; Initialize and get session handle and get connection handle
+   Local $hOpen = _WinHttpOpen()
+   Local $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
 
    ; Check connection
    Local $iCheckInet = _CheckConnection()
@@ -128,18 +151,18 @@ Func _Tooltip()
 
    ; Read RequestSSL
    Local $sReturnedPageCountCurrent = _WinHttpSimpleReadData($hRequestPageCountCurrentSSL)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " 1st line : " & $sReturnedPageCountCurrent & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 1st line : " & $sReturnedPageCountCurrent & @CRLF)
    Local $sReturnedPageCount = _WinHttpSimpleReadData($hRequestPageCountSSL)
    Local $sReturnedPageJsonState = _WinHttpSimpleReadData($hRequestPageJsonStateSSL)
 
    ; Match result variables from page
    Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCountCurrent, "")
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " 2nd line : " & $sSecondTextLine)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd line : " & $sSecondTextLine)
    Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	])|(openLibreReader-ios-blueReader-[0-9])|(xDrip-DexcomG[0-9])"
    Local $sText = StringRegExpReplace($sReturnedPageCountCurrent, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $iGlucose = Int(StringRegExpReplace($sText, "[^0-9]+", ""))
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose : " & $iGlucose & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Glucose : " & $iGlucose & @CRLF)
    Local $iLastGlucose = Int(StringRegExpReplace($sLastText, "[^0-9]+", ""))
 
    ; Check time readings
@@ -150,18 +173,22 @@ Func _Tooltip()
    Local $iMin = Int(StringMid($sReturnedPageCountCurrent, 15, 2))
    Local $iSec = Int(StringMid($sReturnedPageCountCurrent, 18, 2))
    Local $sLastYearMonthDayHourMinSec = $iYear & "/" & $iMonth & "/" & $iDay & " " & $iHour & ":" & $iMin & ":" & $iSec
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last time on server: " & $sLastYearMonthDayHourMinSec & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last time on server: " & $sLastYearMonthDayHourMinSec & @CRLF)
    Local $sCurrentYearMonthDayHourMinSec = @YEAR & "/" & @MON & "/" & @MDAY & " " & @HOUR & ":" & @MIN & ":" & @SEC
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Local time: " & $sCurrentYearMonthDayHourMinSec & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Local time: " & $sCurrentYearMonthDayHourMinSec & @CRLF)
    Local $bMod = Mod(@SEC, $iSec) = @SEC
+
+   ; Check Nightscout version
+   Local $sVersion = StringRegExpReplace($sReturnedPageJsonState, '.*"version":"([^"]+)",.*', '\1')
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : version : " & $sVersion & @CRLF)
 
    ; Reading last glucose (min)
    Local $iLastReadingGlucoseMin = _DateDiff('n', $sLastYearMonthDayHourMinSec, $sCurrentYearMonthDayHourMinSec)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last reading glucose (min) : " & $iLastReadingGlucoseMin & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last reading glucose (min) : " & $iLastReadingGlucoseMin & @CRLF)
 
    ; Interval for loop interval to read glucose
    Local $iReadInterval = 60000
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Read interval (ms) : " & $iReadInterval & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Read interval (ms) : " & $iReadInterval & @CRLF)
 
    ; Settings check for json: status
    Local $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":"([^"]+)",.*', '\1')
@@ -169,7 +196,7 @@ Func _Tooltip()
    If $iCheckStatus = 0 Then
       $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Status : " & $sStatus & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : status : " & $sStatus & @CRLF)
 
    ; Settings check for json: units
    Local $sReadOption = StringRegExpReplace($sReturnedPageJsonState, '.*"units":"([^"]+)",.*', '\1')
@@ -177,7 +204,7 @@ Func _Tooltip()
    If $iCheckReadOption = 0 Then
       $sReadOption = StringRegExpReplace($sReturnedPageJsonState, '.*"units":([^"]+),.*', '\1')
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Units : " & $sReadOption & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : units : " & $sReadOption & @CRLF)
 
    ; Alarm settings check for json: alarm bgLow
    Local $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgLow":([^"]+)}.*', '\1'))
@@ -185,7 +212,7 @@ Func _Tooltip()
    If $iCheckAlertLow = 0 Then
       $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgLow":([^"]+)},.*', '\1'))
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Low : " & $iAlertLow & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgLow : " & $iAlertLow & @CRLF)
 
    ; Alarm settings check for json: alarm bgHigh
    Local $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgHigh":([^"]+)}.*', '\1'))
@@ -193,7 +220,7 @@ Func _Tooltip()
    If $iCheckAlertHigh = 0 Then
       $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgHigh":([^"]+),.*', '\1'))
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " High : " & $iAlertHigh & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgHigh : " & $iAlertHigh & @CRLF)
 
    ; Alarm settings check for json: alarm UrgentLow for bgTargetBottom
    Local $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetBottom":([^"]+)}.*', '\1'))
@@ -201,7 +228,7 @@ Func _Tooltip()
    If $iCheckAlertLowUrgent = 0 Then
       $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetBottom":([^"]+),.*', '\1'))
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentLow : " & $iAlertLowUrgent & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgTargetBottom : " & $iAlertLowUrgent & @CRLF)
 
    ; Alarm settings check for json: alarm UrgentHigh for bgTargetTop
    Local $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetTop":([^"]+)}.*', '\1'))
@@ -209,7 +236,7 @@ Func _Tooltip()
    If $iCheckAlertHighUrgent = 0 Then
       $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetTop":([^"]+),.*', '\1'))
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " UrgentHigh : " & $iAlertHighUrgent & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgTargetTop : " & $iAlertHighUrgent & @CRLF)
 
    ; TrendArrows
    Local $sTrend
@@ -252,13 +279,13 @@ Func _Tooltip()
       $i_fLastGlucoseResult = Int($iLastGlucose)
    EndIf
 
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose result : " & $i_fGlucoseResult & @CRLF)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last glucose result : " & $i_fLastGlucoseResult & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Glucose result : " & $i_fGlucoseResult & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last glucose result : " & $i_fLastGlucoseResult & @CRLF)
 
    ; Calculate delta
    Local $fDeltaTmp = Number($i_fGlucoseResult - $i_fLastGlucoseResult, 3) ; 3=the result is double
    Local $s_fDelta = Round($fDeltaTmp, 1) ; Round 0.0
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Delta : " & $s_fDelta & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Delta : " & $s_fDelta & @CRLF)
    If $s_fDelta > 0 Then
       $s_fDelta = "+" & $s_fDelta
    EndIf
@@ -309,6 +336,9 @@ Func _Tooltip()
    ; Sleep
    If $bMod = True Then Sleep($iReadInterval)
 
+   ; Close WinHttp
+   _WinHttpCloseHandle($hConnect)
+
 EndFunc
 
 ; Start TrayMenu with tooltip
@@ -345,7 +375,7 @@ EndFunc
 ; Set settings in GUI
 Func _Settings()
    Local $hSave, $hDonate, $msg
-   GUICreate($sIniCategory, 320, 155, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
+   GUICreate($sIniCategory, 320, 190, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
    GUICtrlCreateLabel($sIniTitleNightscout, 10, 5, 70)
    Local $hInputDomain = GUICtrlCreateInput($sInputDomain, 10, 20, 300, 20)
    GUICtrlCreateLabel($sIniTitleDesktopWidth, 10, 45, 140)
@@ -362,7 +392,9 @@ Func _Settings()
    Local $hCheckboxPlayAlarm = GUICtrlCreateCheckbox($sIniTitlePlayAlarm, 230, 60, 80, 20)
    GUICtrlSetState($hCheckboxPlayAlarm, $iCheckboxPlayAlarm)
    $hDonate = GUICtrlCreateButton("Donate", 230, 80, 80, 40)
-   $hSave = GUICtrlCreateButton("Save", 10, 125, 300, 20)
+   GUICtrlCreateLabel($sIniTitleGithubAccount, 10, 125, 300)
+   Local $hInputGithubAccount = GUICtrlCreateInput($sInputGithubAccount, 10, 140, 300, 20)
+   $hSave = GUICtrlCreateButton("Save", 10, 165, 300, 20)
    GUISetState()
    $msg = 0
    While $msg <> $GUI_EVENT_CLOSE
@@ -376,6 +408,7 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleUpdate, GUICtrlRead($hCheckboxUpdate))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, GUICtrlRead($hCheckboxTextToSpeech))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, GUICtrlRead($hCheckboxPlayAlarm))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, GUICtrlRead($hInputGithubAccount))
             _Restart()
          Case $msg = $hDonate
             ShellExecute("https://www.paypal.me/MathiasN")
@@ -385,9 +418,47 @@ Func _Settings()
    WEnd
 EndFunc
 
+Func _CgmUpdateCheck()
+   ; Check GitHub update for cgm-remote-monitor
+   Local $sGithubSource, $iCheckMerge
+   Local $sCheckGithubMsg = 'message" : "Merge pull request'
+   Local $sUpdateWindowButtons = "Update | Close"
+   Local $sUpdateWindowTitle = "Nightscout-Update"
+   Local $sUpdateWindowMsg = "Update on GitHub available!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & @CRLF & "Step 4 is not checked!"
+   Local $iCheckVersionDev = StringRegExp($sVersion, '(dev-[0-9]{1,8})')
+   Local $iCheckVersionRelease = StringRegExp($sVersion, '(release-[0-9]{1,8})')
+   Local $iCheckGithubAccount = StringInStr($sIniDefaultGithubAccount, $sInputGithubAccount, 1)
+
+   If $iCheckGithubAccount = 0 Then
+      If $iCheckVersionDev = 0 Then
+         $sGithubSource = ConsoleWrite(InetRead("https://api.github.com/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...dev"))
+         $iCheckMerge = StringInStr($sGithubSource, $sCheckGithubMsg)
+         If $iCheckMerge = 1 Then
+            $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sUpdateWindowTitle, $sUpdateWindowMsg)
+            Switch $iRetCheckUpdateValue
+               Case 1
+                  ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
+               Case 2
+                  Exit
+            EndSwitch
+         EndIf
+      EndIf
+      If $iCheckVersionRelease = 0 Then
+         $sGithubSource = ConsoleWrite(InetRead("https://api.github.com/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...master"))
+         $iCheckMerge = StringInStr($sGithubSource, $sCheckGithubMsg)
+         If $iCheckMerge = 1 Then
+            Switch $iRetCheckUpdateValue
+               Case 1
+                  ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
+               Case 2
+                  Exit
+            EndSwitch
+         EndIf
+      EndIf
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : GitHub source : " & $sGithubSource & @CRLF)
+EndFunc
+
 Func _Exit()
    Exit
 EndFunc
-
-; Close WinHttp
-_WinHttpCloseHandle($hConnect)

@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.6.0.0 (15 September, 2018)
+	Add: New setting option for update your cgm-remote-monitor on GitHub.
+	Change: Bugfixes for WinHttp
+
 v2.5.5.0 (18 June, 2018)
 	Change: Read from api count one for current glucose
 
