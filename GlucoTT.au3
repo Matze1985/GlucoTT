@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.5.0.0
+   #AutoIt3Wrapper_Res_Fileversion=2.5.5.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -105,7 +105,7 @@ Func _Restart()
 EndFunc
 
 ; API-Pages
-Local $sPageCurrent = "/api/v1/entries/current"
+Local $sPageCountCurrent = "/api/v1/entries/sgv?count=1"
 Local $sPageCount = "/api/v1/entries/sgv?count=2"
 Local $sPageJsonState = "/api/v1/status.json"
 
@@ -122,31 +122,33 @@ Func _Tooltip()
    Local $sWrongMsg = "✕"
 
    ; Make a SimpleSSL request
-   Local $hRequestPageCurrentSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageCurrent)
+   Local $hRequestPageCountCurrentSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageCountCurrent)
    Local $hRequestPageCountSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageCount)
    Local $hRequestPageJsonStateSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonState)
 
    ; Read RequestSSL
-   Local $sReturnedPageCurrent = _WinHttpSimpleReadData($hRequestPageCurrentSSL)
+   Local $sReturnedPageCountCurrent = _WinHttpSimpleReadData($hRequestPageCountCurrentSSL)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " 1st line : " & $sReturnedPageCountCurrent & @CRLF)
    Local $sReturnedPageCount = _WinHttpSimpleReadData($hRequestPageCountSSL)
    Local $sReturnedPageJsonState = _WinHttpSimpleReadData($hRequestPageJsonStateSSL)
 
    ; Match result variables from page
-   Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCurrent, "")
+   Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCountCurrent, "")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " 2nd line : " & $sSecondTextLine)
    Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	])|(openLibreReader-ios-blueReader-[0-9])|(xDrip-DexcomG[0-9])"
-   Local $sText = StringRegExpReplace($sReturnedPageCurrent, $sCountMatch, " ")
+   Local $sText = StringRegExpReplace($sReturnedPageCountCurrent, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $iGlucose = Int(StringRegExpReplace($sText, "[^0-9]+", ""))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Glucose : " & $iGlucose & @CRLF)
    Local $iLastGlucose = Int(StringRegExpReplace($sLastText, "[^0-9]+", ""))
 
    ; Check time readings
-   Local $iYear = Int(StringLeft($sReturnedPageCurrent, 4))
-   Local $iMonth = Int(StringMid($sReturnedPageCurrent, 6, 2))
-   Local $iDay = Int(StringMid($sReturnedPageCurrent, 9, 2))
-   Local $iHour = Int(StringMid($sReturnedPageCurrent, 12, 2))
-   Local $iMin = Int(StringMid($sReturnedPageCurrent, 15, 2))
-   Local $iSec = Int(StringMid($sReturnedPageCurrent, 18, 2))
+   Local $iYear = Int(StringLeft($sReturnedPageCountCurrent, 4))
+   Local $iMonth = Int(StringMid($sReturnedPageCountCurrent, 6, 2))
+   Local $iDay = Int(StringMid($sReturnedPageCountCurrent, 9, 2))
+   Local $iHour = Int(StringMid($sReturnedPageCountCurrent, 12, 2))
+   Local $iMin = Int(StringMid($sReturnedPageCountCurrent, 15, 2))
+   Local $iSec = Int(StringMid($sReturnedPageCountCurrent, 18, 2))
    Local $sLastYearMonthDayHourMinSec = $iYear & "/" & $iMonth & "/" & $iDay & " " & $iHour & ":" & $iMin & ":" & $iSec
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") :" & " Last time on server: " & $sLastYearMonthDayHourMinSec & @CRLF)
    Local $sCurrentYearMonthDayHourMinSec = @YEAR & "/" & @MON & "/" & @MDAY & " " & @HOUR & ":" & @MIN & ":" & @SEC
@@ -285,6 +287,8 @@ Func _Tooltip()
    Local $iCheckGlucose = StringRegExp($iGlucose, '^([0-9]{1,3})')
    ; Check values for mmol or mg/dl
    Local $iCheckReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
+
+   ; Tooltip
    If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
       ToolTip($sWrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $sWrongMsg, 3, 2)
    Else

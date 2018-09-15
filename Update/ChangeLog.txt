@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.5.5.0 (18 June, 2018)
+	Change: Read from api count one for current glucose
+
 v2.5.0.0 (16 June, 2018)
 	Change: Bugfixes
 	Change: Fix for sorting error (for reading glucose)
@@ -50,7 +53,7 @@ v1.6.0.0 (10 March, 2018)
 	Added: Last reading in minutes, showing in tooltip
 	
 v1.5.0.0 (01 March, 2018)
-	Added: User-friendly settings (Open file after error, after closing, the app restarts
+	Added: User-friendly settings (Open file after error, after closing, the app restarts)
 	Added: Entry "Settings" in TrayMenu
 	
 v1.4.5.0 (25 February, 2018)
