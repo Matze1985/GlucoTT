@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.6.5.0 (17 September, 2018)
+	Change: Bugfixes for update check cgm-remote-monitor
+	Change: Change to interval check for cgm-remote-monitor update
+
 v2.6.0.0 (15 September, 2018)
 	Add: New setting option for update your cgm-remote-monitor on GitHub.
 	Change: Bugfixes for WinHttp

@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.6.0.0
+   #AutoIt3Wrapper_Res_Fileversion=2.6.5.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -124,9 +124,6 @@ Func _Restart()
    Exit
 EndFunc
 
-; Check 1st start cgm-remote-monitor update
-_CgmUpdateCheck()
-
 Func _Tooltip()
 
    ; API-Pages
@@ -179,8 +176,8 @@ Func _Tooltip()
    Local $bMod = Mod(@SEC, $iSec) = @SEC
 
    ; Check Nightscout version
-   Local $sVersion = StringRegExpReplace($sReturnedPageJsonState, '.*"version":"([^"]+)",.*', '\1')
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : version : " & $sVersion & @CRLF)
+   Global $sNightscoutVersion = StringRegExpReplace($sReturnedPageJsonState, '.*"version":"([^"]+)",.*', '\1')
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Nightscout version : " & $sNightscoutVersion & @CRLF)
 
    ; Reading last glucose (min)
    Local $iLastReadingGlucoseMin = _DateDiff('n', $sLastYearMonthDayHourMinSec, $sCurrentYearMonthDayHourMinSec)
@@ -333,6 +330,9 @@ Func _Tooltip()
       EndIf
    EndIf
 
+   ; Check every interval for a cgm-remote-monitor update
+   _CgmUpdateCheck()
+
    ; Sleep
    If $bMod = True Then Sleep($iReadInterval)
 
@@ -420,17 +420,20 @@ EndFunc
 
 Func _CgmUpdateCheck()
    ; Check GitHub update for cgm-remote-monitor
-   Local $sGithubSource, $iCheckMerge
+   Local $sGithubSource, $iCheckMerge, $iRetCheckUpdateValue
    Local $sCheckGithubMsg = 'message" : "Merge pull request'
    Local $sUpdateWindowButtons = "Update | Close"
    Local $sUpdateWindowTitle = "Nightscout-Update"
    Local $sUpdateWindowMsg = "Update on GitHub available!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & @CRLF & "Step 4 is not checked!"
-   Local $iCheckVersionDev = StringRegExp($sVersion, '(dev-[0-9]{1,8})')
-   Local $iCheckVersionRelease = StringRegExp($sVersion, '(release-[0-9]{1,8})')
-   Local $iCheckGithubAccount = StringInStr($sIniDefaultGithubAccount, $sInputGithubAccount, 1)
+   Local $iCheckVersionDev = StringRegExp($sNightscoutVersion, "(dev)")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check GitHub dev : " & $iCheckVersionDev & @CRLF)
+   Local $iCheckVersionRelease = StringRegExp($sNightscoutVersion, "(release)")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check GitHub release : " & $iCheckVersionRelease & @CRLF)
+   Local $iCheckGithubAccount = StringRegExp($sInputGithubAccount, "(" & $sIniDefaultGithubAccount & ")")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check GitHub account : " & $iCheckGithubAccount & @CRLF)
 
    If $iCheckGithubAccount = 0 Then
-      If $iCheckVersionDev = 0 Then
+      If $iCheckVersionDev = 1 Then
          $sGithubSource = ConsoleWrite(InetRead("https://api.github.com/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...dev"))
          $iCheckMerge = StringInStr($sGithubSource, $sCheckGithubMsg)
          If $iCheckMerge = 1 Then
@@ -443,10 +446,11 @@ Func _CgmUpdateCheck()
             EndSwitch
          EndIf
       EndIf
-      If $iCheckVersionRelease = 0 Then
+      If $iCheckVersionRelease = 1 Then
          $sGithubSource = ConsoleWrite(InetRead("https://api.github.com/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...master"))
          $iCheckMerge = StringInStr($sGithubSource, $sCheckGithubMsg)
          If $iCheckMerge = 1 Then
+            $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sUpdateWindowTitle, $sUpdateWindowMsg)
             Switch $iRetCheckUpdateValue
                Case 1
                   ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
@@ -456,7 +460,6 @@ Func _CgmUpdateCheck()
          EndIf
       EndIf
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : GitHub source : " & $sGithubSource & @CRLF)
 EndFunc
 
 Func _Exit()
