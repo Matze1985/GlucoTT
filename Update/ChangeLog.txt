@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.6.5.5 (17 September, 2018)
+	Add: New regex support for G5 Native
+
 v2.6.5.0 (17 September, 2018)
 	Change: Bugfixes for update check cgm-remote-monitor
 	Change: Change to interval check for cgm-remote-monitor update
