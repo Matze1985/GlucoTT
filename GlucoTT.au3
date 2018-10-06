@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.6.5.5
+   #AutoIt3Wrapper_Res_Fileversion=2.8.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -17,6 +17,13 @@
 Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
 Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
 Opt("WinTitleMatchMode", 2) ;1=start, 2=subStr, 3=exact, 4=advanced, -1 to -4=Nocase
+Opt("TrayIconHide", 1) ;Hides the AutoIt tray icon.
+
+; Set Hotkeys [CTRL+ALT ...]
+HotKeySet("^!n", "_Nightscout")
+HotKeySet("^!s", "_Settings")
+HotKeySet("^!h", "_Help")
+HotKeySet("^!e", "_Exit")
 
 ; App title
 Local $sTitle = StringRegExpReplace(@ScriptName, ".au3|.exe", "")
@@ -132,7 +139,7 @@ Func _Tooltip()
    Local $sPageJsonState = "/api/v1/status.json"
 
    ; Initialize and get session handle and get connection handle
-   Local $hOpen = _WinHttpOpen()
+   Global $hOpen = _WinHttpOpen()
    Local $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
 
    ; Check connection
@@ -155,7 +162,7 @@ Func _Tooltip()
    ; Match result variables from page
    Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCountCurrent, "")
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd line : " & $sSecondTextLine)
-   Local $sCountMatch = "([0-9]{13})|([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{4})|([	])|(openLibreReader-ios-blueReader-[0-9])|(xDrip-DexcomG[0-9])|(G[0-9] Native)"
+   Local $sCountMatch = "([2].*[0-9]{13}|.[0-9]{4}|\b[a-z].*)"
    Local $sText = StringRegExpReplace($sReturnedPageCountCurrent, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
    Local $iGlucose = Int(StringRegExpReplace($sText, "[^0-9]+", ""))
@@ -374,6 +381,7 @@ EndFunc
 
 ; Set settings in GUI
 Func _Settings()
+   Local $hDLL = DllOpen("user32.dll")
    Local $hSave, $hDonate, $msg
    GUICreate($sIniCategory, 320, 190, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
    GUICtrlCreateLabel($sIniTitleNightscout, 10, 5, 70)
@@ -400,7 +408,7 @@ Func _Settings()
    While $msg <> $GUI_EVENT_CLOSE
       $msg = GUIGetMsg()
       Select
-         Case $msg = $hSave
+         Case $msg = $hSave Or _IsPressed("0D", $hDLL)
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleNightscout, GUICtrlRead($hInputDomain))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, GUICtrlRead($hInputDesktopWidth))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, GUICtrlRead($hInputDesktopHeight))
@@ -412,16 +420,17 @@ Func _Settings()
             _Restart()
          Case $msg = $hDonate
             ShellExecute("https://www.paypal.me/MathiasN")
-         Case $msg = $GUI_EVENT_CLOSE
+         Case $msg = $GUI_EVENT_CLOSE Or _IsPressed("1B", $hDLL)
             GUIDelete($sIniCategory)
       EndSelect
    WEnd
 EndFunc
 
 Func _CgmUpdateCheck()
+
    ; Check GitHub update for cgm-remote-monitor
-   Local $sGithubSource, $iCheckMerge, $iRetCheckUpdateValue
-   Local $sCheckGithubMsg = 'message" : "Merge pull request'
+   Local $iCheckMerge, $iRetCheckUpdateValue, $hConnectCgmUpdateCompare, $hRequestCgmUpdateCompare, $sReturnedCgmUpdateCompare
+   Local $sCheckGithubStatus = '("status":"diverged")' ; diverged (update available), behind (after update)
    Local $sUpdateWindowButtons = "Update | Close"
    Local $sUpdateWindowTitle = "Nightscout-Update"
    Local $sUpdateWindowMsg = "Update on GitHub available!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & @CRLF & "Step 4 is not checked!"
@@ -434,8 +443,10 @@ Func _CgmUpdateCheck()
 
    If $iCheckGithubAccount = 0 Then
       If $iCheckVersionDev = 1 Then
-         $sGithubSource = ConsoleWrite(InetRead("https://api.github.com/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...dev"))
-         $iCheckMerge = StringInStr($sGithubSource, $sCheckGithubMsg)
+         $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, "https://api.github.com")
+         $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
+         $sReturnedCgmUpdateCompare = _WinHttpSimpleReadData($hRequestCgmUpdateCompare)
+         $iCheckMerge = StringRegExp($sReturnedCgmUpdateCompare, $sCheckGithubStatus)
          If $iCheckMerge = 1 Then
             $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sUpdateWindowTitle, $sUpdateWindowMsg)
             Switch $iRetCheckUpdateValue
@@ -447,8 +458,10 @@ Func _CgmUpdateCheck()
          EndIf
       EndIf
       If $iCheckVersionRelease = 1 Then
-         $sGithubSource = ConsoleWrite(InetRead("https://api.github.com/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...master"))
-         $iCheckMerge = StringInStr($sGithubSource, $sCheckGithubMsg)
+         $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, "https://api.github.com")
+         $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
+         $sReturnedCgmUpdateCompare = _WinHttpSimpleReadData($hRequestCgmUpdateCompare)
+         $iCheckMerge = StringRegExp($sReturnedCgmUpdateCompare, $sCheckGithubStatus)
          If $iCheckMerge = 1 Then
             $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sUpdateWindowTitle, $sUpdateWindowMsg)
             Switch $iRetCheckUpdateValue
@@ -460,6 +473,9 @@ Func _CgmUpdateCheck()
          EndIf
       EndIf
    EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Update page : " & $sReturnedCgmUpdateCompare & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check status merge : " & $iCheckMerge & @CRLF)
+   _WinHttpCloseHandle($hConnectCgmUpdateCompare)
 EndFunc
 
 Func _Exit()
