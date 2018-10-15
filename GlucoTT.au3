@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.8.0.0
+   #AutoIt3Wrapper_Res_Fileversion=2.8.5.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -302,7 +302,7 @@ Func _Tooltip()
    If $iGlucose <= $iAlertLow Or $iGlucose >= $iAlertHigh Or $iGlucose <= $iAlertLowUrgent Or $iGlucose >= $iAlertHighUrgent Then
       $iAlarm = 2 ;=Warning icon
       ; Play alarm from windows media folder (tada.wav)
-      If $iCheckboxPlayAlarm = 1 Then
+      If $iCheckboxPlayAlarm = 1 And $bMod = True Then
          If @MIN = @MIN + $iLastReadingGlucoseMin And $bMod = True Then
             SoundPlay(@WindowsDir & "\media\tada.wav", 0)
          EndIf
@@ -326,22 +326,27 @@ Func _Tooltip()
       ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iLastReadingGlucoseMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
    EndIf
 
+   ; Check for a cgm-remote-monitor update when the update window not exists
+   Global $sUpdateWindowTitle = "Nightscout-Update"
+
+   If Not WinExists($sUpdateWindowTitle) Then
+      _CgmUpdateCheck()
+   EndIf
+
    ; Check TTS option
    Local $oSapi = _SpeechObject_Create()
    Local $sGlucoseTextToSpeech = StringReplace($i_fGlucoseResult, ".", ",")
 
-   If $iCheckboxTextToSpeech = 1 Then
-      ; Read interval (@MIN + last reading glucose)
-      If @MIN = @MIN + $iLastReadingGlucoseMin Then
-         _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
-      EndIf
-   EndIf
-
-   ; Check every interval for a cgm-remote-monitor update
-   _CgmUpdateCheck()
-
    ; Sleep
-   If $bMod = True Then Sleep($iReadInterval)
+   If $bMod = True Then
+      If $iCheckboxTextToSpeech = 1 And $bMod = True Then
+         ; Read interval (@MIN + last reading glucose)
+         If @MIN = @MIN + $iLastReadingGlucoseMin Then
+            _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
+         EndIf
+      EndIf
+      Sleep($iReadInterval)
+   EndIf
 
    ; Close WinHttp
    _WinHttpCloseHandle($hConnect)
@@ -432,7 +437,6 @@ Func _CgmUpdateCheck()
    Local $iCheckMerge, $iRetCheckUpdateValue, $hConnectCgmUpdateCompare, $hRequestCgmUpdateCompare, $sReturnedCgmUpdateCompare
    Local $sCheckGithubStatus = '("status":"diverged")' ; diverged (update available), behind (after update)
    Local $sUpdateWindowButtons = "Update | Close"
-   Local $sUpdateWindowTitle = "Nightscout-Update"
    Local $sUpdateWindowMsg = "Update on GitHub available!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & @CRLF & "Step 4 is not checked!"
    Local $iCheckVersionDev = StringRegExp($sNightscoutVersion, "(dev)")
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check GitHub dev : " & $iCheckVersionDev & @CRLF)
