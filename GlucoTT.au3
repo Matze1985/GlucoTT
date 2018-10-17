@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.8.5.0
+   #AutoIt3Wrapper_Res_Fileversion=2.9.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -161,7 +161,7 @@ Func _Tooltip()
 
    ; Match result variables from page
    Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCountCurrent, "")
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd line : " & $sSecondTextLine)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd line : " & $sSecondTextLine & @CRLF)
    Local $sCountMatch = "([2].*[0-9]{13}|.[0-9]{4}|\b[a-z].*)"
    Local $sText = StringRegExpReplace($sReturnedPageCountCurrent, $sCountMatch, " ")
    Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
@@ -326,16 +326,10 @@ Func _Tooltip()
       ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iLastReadingGlucoseMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
    EndIf
 
-   ; Check for a cgm-remote-monitor update when the update window not exists
-   Global $sUpdateWindowTitle = "Nightscout-Update"
-
-   If Not WinExists($sUpdateWindowTitle) Then
-      _CgmUpdateCheck()
-   EndIf
-
-   ; Check TTS option
+   ; Check TTS option and locals and globals
    Local $oSapi = _SpeechObject_Create()
    Local $sGlucoseTextToSpeech = StringReplace($i_fGlucoseResult, ".", ",")
+   Global $sUpdateWindowTitle = "Nightscout-Update"
 
    ; Sleep
    If $bMod = True Then
@@ -346,6 +340,10 @@ Func _Tooltip()
          EndIf
       EndIf
       Sleep($iReadInterval)
+      ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
+      If Not WinExists($sUpdateWindowTitle) Then
+         _CgmUpdateCheck()
+      EndIf
    EndIf
 
    ; Close WinHttp
@@ -432,12 +430,12 @@ Func _Settings()
 EndFunc
 
 Func _CgmUpdateCheck()
-
    ; Check GitHub update for cgm-remote-monitor
    Local $iCheckMerge, $iRetCheckUpdateValue, $hConnectCgmUpdateCompare, $hRequestCgmUpdateCompare, $sReturnedCgmUpdateCompare
-   Local $sCheckGithubStatus = '("status":"diverged")' ; diverged (update available), behind (after update)
+   Local $sCheckGithubStatus = '("status":"(diverged|ahead)")' ; ahead, diverged (update available), behind (after update)
    Local $sUpdateWindowButtons = "Update | Close"
-   Local $sUpdateWindowMsg = "Update on GitHub available!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & @CRLF & "Step 4 is not checked!"
+   Local $sUpdateWindowMsg = "Update on GitHub available!"
+   Local $sUpdateWindowMsgHelp = "Help for update on GitHub!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & @CRLF & "Step 4 is not checked!"
    Local $iCheckVersionDev = StringRegExp($sNightscoutVersion, "(dev)")
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check GitHub dev : " & $iCheckVersionDev & @CRLF)
    Local $iCheckVersionRelease = StringRegExp($sNightscoutVersion, "(release)")
@@ -456,8 +454,10 @@ Func _CgmUpdateCheck()
             Switch $iRetCheckUpdateValue
                Case 1
                   ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
+                  Sleep(500)
+                  _ExtMsgBox($EMB_ICONINFO, "Close", $sUpdateWindowTitle, $sUpdateWindowMsgHelp)
                Case 2
-                  Exit
+                  ;Exit
             EndSwitch
          EndIf
       EndIf
@@ -471,8 +471,10 @@ Func _CgmUpdateCheck()
             Switch $iRetCheckUpdateValue
                Case 1
                   ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
+                  Sleep(500)
+                  _ExtMsgBox($EMB_ICONINFO, "Close", $sUpdateWindowTitle, $sUpdateWindowMsgHelp)
                Case 2
-                  Exit
+                  ;Exit
             EndSwitch
          EndIf
       EndIf

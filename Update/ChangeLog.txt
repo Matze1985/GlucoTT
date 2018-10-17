@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.9.0.0 (17 October, 2018)
+	Change: Enhancement for status update on GitHub
+	Change: Update interval time for cgm-remote-monitor
+
 v2.8.5.0 (15 October, 2018)
 	Change: Fix speech and play alarm bug
 	Change: Better update check logic for cgm-remote-monitor
