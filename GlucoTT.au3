@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.9.0.0
+   #AutoIt3Wrapper_Res_Fileversion=2.9.5.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -432,7 +432,7 @@ EndFunc
 Func _CgmUpdateCheck()
    ; Check GitHub update for cgm-remote-monitor
    Local $iCheckMerge, $iRetCheckUpdateValue, $hConnectCgmUpdateCompare, $hRequestCgmUpdateCompare, $sReturnedCgmUpdateCompare
-   Local $sCheckGithubStatus = '("status":"(diverged|ahead)")' ; ahead, diverged (update available), behind (after update)
+   Local $sCheckGithubStatus = '("status":( |)"(diverged|ahead)")' ; ahead, diverged (update available), behind (after update)
    Local $sUpdateWindowButtons = "Update | Close"
    Local $sUpdateWindowMsg = "Update on GitHub available!"
    Local $sUpdateWindowMsgHelp = "Help for update on GitHub!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & @CRLF & "Step 4 is not checked!"

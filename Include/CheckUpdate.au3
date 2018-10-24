@@ -64,7 +64,8 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
    ; 					Note: In case of error, just continue with current script...
    ;
    ; Author ........: GreenCan
-   ; Modified.......: 14.01.2018 - Matze1985 - Change "backup old file" to "remove old file"
+   ; Modified.......: 		24.10.2018 - Matze1985 - Adding wait for starting downloaded file
+   ;						14.01.2018 - Matze1985 - Change "backup old file" to "remove old file"
    ; Remarks .......: 		The script version has format x.x.x.x !
    ;						In case the script (or exe) has been renamed (and does not correspond to the original file name),
    ;						The orginal file will not be renamed
@@ -125,7 +126,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
             If $sNewVersion > $sCurrentVersion Then
 ;~ 				If MsgBox(36, "Update " & $sFileToUpdate & " ver " & $sCurrentVersion, "A new version of " & $sFileToUpdate & " is available since " & $sDate & "." & @CRLF & "Download version " & $sNewVersion & " now? ") = 6 Then ;  No is Default
                While "loop view History"
-				  _ExtMsgBoxSet(-1, -1, -1, -1, -1, -1, 700)
+                  _ExtMsgBoxSet(-1, -1, -1, -1, -1, -1, 700)
                   $Return = _ExtMsgBox(32, " ChangeLog | Yes | No", "Update " & $sFileToUpdate & " ver " & $sCurrentVersion, "A new version of " & $sFileToUpdate & " is available since " & $sDate & "." & @CRLF & "Download version " & $sNewVersion & " now? ")
                   Switch $Return
                      Case 1
@@ -190,25 +191,38 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                            ; 1. wait for a few seconds to enable to current script to Exit (using ping trick)
                            ; 2. delete old file
                            ; 3. then rename the new downloaded version to the initially used script name (scriptname.au3 or scriptname.exe)
-                           ; start the new script
-                           ; finally auto-delete the temporary script
+                           ; 4. wait for downloaded file
+                           ; 5. start the new script
+                           ; 6. finally auto-delete the temporary script
                            ; quit
 
                            $UpdateScript = '@ECHO ON' & _
                                  @CRLF & _
                                  'ping 127.0.0.1 -n 5 -w 5000' & _
                                  @CRLF & _
-                                 'DEL /F "' & @ScriptDir & '\' & $szFName & '.exe' & _
+                                 'DEL /F "' & @ScriptDir & '\' & $szFName & $szExt & _
                                  @CRLF & _
                                  'rename "' & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt & '" ' & $szFName & $szExt & _
+                                 @CRLF & _
+                                 'SET File="' & $szFName & $szExt & '"' & _
+                                 @CRLF & _
+                                 ':CheckFile' & _
+                                 @CRLF & _
+                                 'IF EXIST %File% GOTO FoundFile' & _
+                                 @CRLF & _
+                                 'ping 127.0.0.1 -n 1 > nul' & _
+                                 @CRLF & _
+                                 'GOTO CheckFile' & _
+                                 @CRLF & _
+                                 ':FoundFile' & _
+                                 @CRLF & _
+                                 'ECHO Found: %File%' & _
                                  @CRLF & _
                                  'start ' & $szFName & $szExt & _
                                  @CRLF & _
                                  'DEL /F "' & @ScriptDir & '\proc.cmd"' & _
                                  @CRLF
-
                            If Not @Compiled Then ConsoleWrite($UpdateScript & @CR)
-
                            $sTempFile = FileOpen(@ScriptDir & "\proc.cmd", 2)
                            FileWrite($sTempFile, $UpdateScript)
                            FileClose($sTempFile)
