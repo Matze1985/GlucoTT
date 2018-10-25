@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.9.8.0 (25 October, 2018)
+	Add: Check upload to Nightscout for one method
+
 v2.9.5.0 (24 October, 2018)
 	Change: Enhancement regex for status update on GitHub
 	Change: Enhancement for CheckUpdate.au3 
