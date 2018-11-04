@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.9.9.5 (04 November, 2018)
+	Change: Bugfix for version
+
 v2.9.9.0 (04 November, 2018)
 	Change: Little changes for check the upload method to Nightscout
 	Change: Better regex check for JSON

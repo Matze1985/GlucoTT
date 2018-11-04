@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.9.9.0
+   #AutoIt3Wrapper_Res_Fileversion=2.9.9.5
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -27,7 +27,6 @@ HotKeySet("^!e", "_Exit")
 
 ; App title
 Local $sTitle = StringRegExpReplace(@ScriptName, ".au3|.exe", "")
-Local $sVersion = StringTrimLeft(5, 37)
 
 ; Check for another instance of this program
 If _Singleton($sTitle, 1) = 0 Then
