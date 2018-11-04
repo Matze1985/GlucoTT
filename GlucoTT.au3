@@ -2,17 +2,17 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.9.8.5
+   #AutoIt3Wrapper_Res_Fileversion=2.9.9.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <TrayConstants.au3>
-#include <Include\CheckUpdate.au3>
-#include <Include\WinHttp.au3>
-#include <Include\ExtMsgBox.au3>
-#include <Include\_Startup.au3>
-#include <Include\TTS UDF.au3>
+#include "Include\CheckUpdate.au3"
+#include "Include\WinHttp.au3"
+#include "Include\ExtMsgBox.au3"
+#include "Include\_Startup.au3"
+#include "Include\TTS UDF.au3"
 
 Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
 Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
@@ -27,6 +27,7 @@ HotKeySet("^!e", "_Exit")
 
 ; App title
 Local $sTitle = StringRegExpReplace(@ScriptName, ".au3|.exe", "")
+Local $sVersion = StringTrimLeft(5, 37)
 
 ; Check for another instance of this program
 If _Singleton($sTitle, 1) = 0 Then
@@ -132,6 +133,8 @@ Func _Restart()
 EndFunc
 
 Func _Tooltip()
+   ; Call NtResumeProcess for suspended PC
+   ;DllCall("ntdll.dll", "int", "NtResumeProcess", "int", $sTitle & ".exe")
 
    ; API-Pages
    Local $sPageCountCurrent = "/api/v1/entries/sgv?count=1"
@@ -141,6 +144,7 @@ Func _Tooltip()
    ; Initialize and get session handle and get connection handle
    Global $hOpen = _WinHttpOpen()
    Local $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : URL : " & $sInputDomain & @CRLF)
 
    ; Check connection
    Local $iCheckInet = _CheckConnection()
@@ -160,15 +164,10 @@ Func _Tooltip()
    Local $sReturnedPageJsonState = _WinHttpSimpleReadData($hRequestPageJsonStateSSL)
 
    ; Match result variables from page
-   Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCountCurrent, "")
+   Local $iReturnedPageCountCurrentId = Int(StringMid($sReturnedPageCountCurrent, 30, 13))
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 1st line Id : " & $iReturnedPageCountCurrentId & @CRLF)
+   Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCountCurrent & @LF, "")
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd line : " & $sSecondTextLine & @CRLF)
-
-   ; Check upload to Nightscout
-   Local $iCheckSecondTextLine = StringRegExp($sSecondTextLine, '([0-9A-Za-z:-])')
-
-   If $iCheckSecondTextLine = 0 Then
-      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
-   EndIf
 
    Local $sCountMatch = "([2].*[0-9]{13}|.[0-9]{4}|\b[a-z].*)"
    Local $sText = StringRegExpReplace($sReturnedPageCountCurrent, $sCountMatch, " ")
@@ -191,7 +190,7 @@ Func _Tooltip()
    Local $bMod = Mod(@SEC, $iSec) = @SEC
 
    ; Check Nightscout version
-   Global $sNightscoutVersion = StringRegExpReplace($sReturnedPageJsonState, '.*"version":"([^"]+)",.*', '\1')
+   Global $sNightscoutVersion = StringRegExpReplace($sReturnedPageJsonState, '.*"version":("|)([^"]+)("|),.*', '\2')
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Nightscout version : " & $sNightscoutVersion & @CRLF)
 
    ; Reading last glucose (min)
@@ -203,51 +202,27 @@ Func _Tooltip()
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Read interval (ms) : " & $iReadInterval & @CRLF)
 
    ; Settings check for json: status
-   Local $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":"([^"]+)",.*', '\1')
-   Local $iCheckStatus = StringRegExp($sStatus, '(ok)')
-   If $iCheckStatus = 0 Then
-      $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":([^"]+),.*', '\1')
-   EndIf
+   Local $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":("|)([^"]+)("|),.*', '\2')
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : status : " & $sStatus & @CRLF)
 
    ; Settings check for json: units
-   Local $sReadOption = StringRegExpReplace($sReturnedPageJsonState, '.*"units":"([^"]+)",.*', '\1')
-   Local $iCheckReadOption = StringRegExp($sReadOption, '(mmol|mg\/dl)')
-   If $iCheckReadOption = 0 Then
-      $sReadOption = StringRegExpReplace($sReturnedPageJsonState, '.*"units":([^"]+),.*', '\1')
-   EndIf
+   Local $sReadOption = StringRegExpReplace($sReturnedPageJsonState, '.*"units":("|)([^"]+)("|),.*', '\2')
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : units : " & $sReadOption & @CRLF)
 
    ; Alarm settings check for json: alarm bgLow
-   Local $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgLow":([^"]+)}.*', '\1'))
-   Local $iCheckAlertLow = StringRegExp($iAlertLow, '([A-Za-z,":-{}])')
-   If $iCheckAlertLow = 0 Then
-      $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgLow":([^"]+)},.*', '\1'))
-   EndIf
+   Local $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgLow":("|)([^"]+)("|),.*', '\2'))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgLow : " & $iAlertLow & @CRLF)
 
    ; Alarm settings check for json: alarm bgHigh
-   Local $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgHigh":([^"]+)}.*', '\1'))
-   Local $iCheckAlertHigh = StringRegExp($iAlertHigh, '([A-Za-z,":-{}])')
-   If $iCheckAlertHigh = 0 Then
-      $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgHigh":([^"]+),.*', '\1'))
-   EndIf
+   Local $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgHigh":("|)([^"]+)("|),.*', '\2'))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgHigh : " & $iAlertHigh & @CRLF)
 
    ; Alarm settings check for json: alarm UrgentLow for bgTargetBottom
-   Local $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetBottom":([^"]+)}.*', '\1'))
-   Local $iCheckAlertLowUrgent = StringRegExp($iAlertLowUrgent, '([A-Za-z,":-{}])')
-   If $iCheckAlertLowUrgent = 0 Then
-      $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetBottom":([^"]+),.*', '\1'))
-   EndIf
+   Local $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetBottom":("|)([^"]+)("|),.*', '\2'))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgTargetBottom : " & $iAlertLowUrgent & @CRLF)
 
    ; Alarm settings check for json: alarm UrgentHigh for bgTargetTop
-   Local $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetTop":([^"]+)}.*', '\1'))
-   Local $iCheckAlertHighUrgent = StringRegExp($iAlertHighUrgent, '([A-Za-z,":-{}])')
-   If $iCheckAlertHighUrgent = 0 Then
-      $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetTop":([^"]+),.*', '\1'))
-   EndIf
+   Local $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetTop":("|)([^"]+)("|),.*', '\2'))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgTargetTop : " & $iAlertHighUrgent & @CRLF)
 
    ; TrendArrows
@@ -334,13 +309,21 @@ Func _Tooltip()
       ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iLastReadingGlucoseMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
    EndIf
 
-   ; Check TTS option and locals and globals
+   ; Check TTS option and locals, globals
    Local $oSapi = _SpeechObject_Create()
    Local $sGlucoseTextToSpeech = StringReplace($i_fGlucoseResult, ".", ",")
    Global $sUpdateWindowTitle = "Nightscout-Update"
 
+   ; Check double upload method to Nightscout
+   Local $iCheckSecondTextLineForDouble = StringRegExp($sSecondTextLine, "(" & $iReturnedPageCountCurrentId & ")")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check 2nd line Id : " & $iCheckSecondTextLineForDouble & @CRLF)
+
    ; Sleep
    If $bMod = True Then
+      ; Check upload to Nightscout
+      If $iCheckSecondTextLineForDouble = 1 Then
+         _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
+      EndIf
       If $iCheckboxTextToSpeech = 1 And $bMod = True Then
          ; Read interval (@MIN + last reading glucose)
          If @MIN = @MIN + $iLastReadingGlucoseMin Then

@@ -1,7 +1,7 @@
 [GlucoTT.exe]
-version=2.9.8.5
-date=2018/11/01 08:04
+version=2.9.9.0
+date=2018/11/04 13:07
 Filesize=1165312
-CRC=FD7B7F2D
+CRC=D1554991
 download=https://github.com/Matze1985/GlucoTT/raw/master/GlucoTT.exe
 changes=https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/ChangeLog.txt
