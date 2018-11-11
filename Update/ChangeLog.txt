@@ -1,6 +1,12 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.9.9.7 (11 November, 2018)
+	Add: Update-Helper for Azure and Heroku
+	Add: Added check for upper case in url
+	Change: Function _CgmUpdateCheck()
+	Change: Changes for settings file
+
 v2.9.9.5 (04 November, 2018)
 	Change: Bugfix for version
 

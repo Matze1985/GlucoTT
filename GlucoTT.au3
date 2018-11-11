@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.9.9.5
+   #AutoIt3Wrapper_Res_Fileversion=2.9.9.7
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -47,9 +47,11 @@ Local $sFile = "Settings.ini"
 Local $sFileFullPath = $sFilePath & $sFile
 Local $sIniCategory = "Settings"
 Local $sIniTitleNightscout = "Nightscout"
-Local $sIniDefaultNightscout = "https://<account>.azurewebsites.net"
-Local $sIniTitleGithubAccount = "Update-Check for cgm-remote-monitor"
-Local $sIniDefaultGithubAccount = "GitHub-Account"
+Local $sIniDefaultNightscout = "https://<account>.herokuapp.com"
+Local $sIniTitleCgmUpdate = "GitHub-Nightscout-Update"
+Local $sIniTitleGithubAccount = "GitHub-User"
+Local $sIniDefaultGithubAccount = "Input a GitHub-User to update cgm-remote-monitor"
+Local $iIniDefaultCheckboxCgmUpdate = 4
 Local $sIniTitleDesktopWidth = "Desktop width (minus)"
 Local $iIniDefaultDesktopWidth = 43
 Local $sIniTitleDesktopHeight = "Desktop height (minus)"
@@ -70,6 +72,7 @@ Local $iCheckboxAutostart = IniRead($sFileFullPath, $sIniCategory, $sIniTitleAut
 Local $iCheckboxUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleUpdate, $iIniDefaultCheckboxUpdate)
 Local $iCheckboxTextToSpeech = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, $iIniDefaultCheckboxTextToSpeech)
 Local $iCheckboxPlayAlarm = IniRead($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, $iIniDefaultCheckboxPlayAlarm)
+Local $iCheckboxCgmUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleCgmUpdate, $iIniDefaultCheckboxCgmUpdate)
 Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, $sIniDefaultGithubAccount)
 
 ; Check empty input for Nightscout
@@ -102,6 +105,12 @@ If $iCheckDomain = 0 Then
    _Settings()
 EndIf
 
+; Check upper case in url
+If StringRegExp($sInputDomain, '([A-Z])') Then
+   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Upper case in url not allowed!")
+   _Settings()
+EndIf
+
 ; Check desktop width and height settings
 Local $iCheckNumbers = StringRegExp($sInputDesktopWidth & $sInputDesktophHeight, '^[0-9]+$')
 If $iCheckNumbers = 0 Then
@@ -110,7 +119,7 @@ If $iCheckNumbers = 0 Then
 EndIf
 
 ; Check checkbox options
-If $iCheckboxAutostart = 1 Or $iCheckboxAutostart = 4 And $iCheckboxUpdate = 1 Or $iCheckboxUpdate = 4 And $iCheckboxTextToSpeech = 1 Or $iCheckboxTextToSpeech = 4 And $iCheckboxPlayAlarm = 1 Or $iCheckboxPlayAlarm = 4 Then
+If $iCheckboxAutostart = 1 Or $iCheckboxAutostart = 4 And $iCheckboxUpdate = 1 Or $iCheckboxUpdate = 4 And $iCheckboxTextToSpeech = 1 Or $iCheckboxTextToSpeech = 4 And $iCheckboxPlayAlarm = 1 Or $iCheckboxPlayAlarm = 4 And $iCheckboxCgmUpdate = 1 Or $iCheckboxCgmUpdate = 4 Then
 Else
    ShellExecute(@ScriptDir & "\" & $sFile)
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers for options allowed, please check your ini file:" & @CRLF & @CRLF & "- Checkbox number: 1 (on)" & @CRLF & "- Checkbox number: 4 (off)")
@@ -120,8 +129,8 @@ EndIf
 
 ; Check GitHub-Account
 Local $iCheckGithub = StringRegExp($sInputGithubAccount, '^[A-Za-z0-9_-]{3,15}$')
-If $iCheckGithub = 0 Then
-   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong GitHub Username!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://github.com/USERNAME" & @CRLF & @CRLF & "For no update check remove the GitHub-Account and save settings!")
+If $iCheckGithub = 0 And $iCheckboxCgmUpdate = 1 Then
+   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong GitHub Username!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://github.com/USERNAME" & @CRLF & @CRLF & "For no update check:" & @CRLF & "Disable the option " & $sIniTitleCgmUpdate & "!")
    _Settings()
 EndIf
 
@@ -132,9 +141,6 @@ Func _Restart()
 EndFunc
 
 Func _Tooltip()
-   ; Call NtResumeProcess for suspended PC
-   ;DllCall("ntdll.dll", "int", "NtResumeProcess", "int", $sTitle & ".exe")
-
    ; API-Pages
    Local $sPageCountCurrent = "/api/v1/entries/sgv?count=1"
    Local $sPageCount = "/api/v1/entries/sgv?count=2"
@@ -143,7 +149,7 @@ Func _Tooltip()
    ; Initialize and get session handle and get connection handle
    Global $hOpen = _WinHttpOpen()
    Local $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : URL : " & $sInputDomain & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Url : " & $sInputDomain & @CRLF)
 
    ; Check connection
    Local $iCheckInet = _CheckConnection()
@@ -163,8 +169,8 @@ Func _Tooltip()
    Local $sReturnedPageJsonState = _WinHttpSimpleReadData($hRequestPageJsonStateSSL)
 
    ; Match result variables from page
-   Local $iReturnedPageCountCurrentId = Int(StringMid($sReturnedPageCountCurrent, 30, 13))
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 1st line Id : " & $iReturnedPageCountCurrentId & @CRLF)
+   Local $iReturnedPageCountCurrentDate = Int(StringMid($sReturnedPageCountCurrent, 30, 13))
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 1st date: " & $iReturnedPageCountCurrentDate & @CRLF)
    Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCountCurrent & @LF, "")
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd line : " & $sSecondTextLine & @CRLF)
 
@@ -314,8 +320,8 @@ Func _Tooltip()
    Global $sUpdateWindowTitle = "Nightscout-Update"
 
    ; Check double upload method to Nightscout
-   Local $iCheckSecondTextLineForDouble = StringRegExp($sSecondTextLine, "(" & $iReturnedPageCountCurrentId & ")")
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check 2nd line Id : " & $iCheckSecondTextLineForDouble & @CRLF)
+   Local $iCheckSecondTextLineForDouble = StringRegExp($sSecondTextLine, "(" & $iReturnedPageCountCurrentDate & ")")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check 2nd date : " & $iCheckSecondTextLineForDouble & @CRLF)
 
    ; Sleep
    If $bMod = True Then
@@ -331,8 +337,10 @@ Func _Tooltip()
       EndIf
       Sleep($iReadInterval)
       ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
-      If Not WinExists($sUpdateWindowTitle) Then
-         _CgmUpdateCheck()
+      If $iCheckboxCgmUpdate = 1 Then
+         If Not WinExists($sUpdateWindowTitle) Then
+            _CgmUpdateCheck()
+         EndIf
       EndIf
    EndIf
 
@@ -393,7 +401,9 @@ Func _Settings()
    Local $hCheckboxPlayAlarm = GUICtrlCreateCheckbox($sIniTitlePlayAlarm, 230, 60, 80, 20)
    GUICtrlSetState($hCheckboxPlayAlarm, $iCheckboxPlayAlarm)
    $hDonate = GUICtrlCreateButton("Donate", 230, 80, 80, 40)
-   GUICtrlCreateLabel($sIniTitleGithubAccount, 10, 125, 300)
+   ;GUICtrlCreateLabel($sIniTitleGithubAccount, 10, 125, 300)
+   Local $hCheckboxCgmUpdate = GUICtrlCreateCheckbox($sIniTitleCgmUpdate, 10, 120, 300, 20)
+   GUICtrlSetState($hCheckboxCgmUpdate, $iCheckboxCgmUpdate)
    Local $hInputGithubAccount = GUICtrlCreateInput($sInputGithubAccount, 10, 140, 300, 20)
    $hSave = GUICtrlCreateButton("Save", 10, 165, 300, 20)
    GUISetState()
@@ -409,6 +419,7 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleUpdate, GUICtrlRead($hCheckboxUpdate))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, GUICtrlRead($hCheckboxTextToSpeech))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, GUICtrlRead($hCheckboxPlayAlarm))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleCgmUpdate, GUICtrlRead($hCheckboxCgmUpdate))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, GUICtrlRead($hInputGithubAccount))
             _Restart()
          Case $msg = $hDonate
@@ -421,11 +432,16 @@ EndFunc
 
 Func _CgmUpdateCheck()
    ; Check GitHub update for cgm-remote-monitor
-   Local $iCheckMerge, $iRetCheckUpdateValue, $hConnectCgmUpdateCompare, $hRequestCgmUpdateCompare, $sReturnedCgmUpdateCompare
+   Local $iRetCheckUpdateValue, $hRequestCgmUpdateCompare, $sOldClip, $sBranch, $sDeployOn
    Local $sCheckGithubStatus = '("status":( |)"(diverged|ahead)")' ; ahead, diverged (update available), behind (after update)
+   Local $sCheckUrlAzure = '([Aa][Zz][Uu][Rr][Ee])'
+   Local $sCheckUrlHeroku = '([Hh][Ee][Rr][Oo][Kk][Uu])'
+   Local $sSubdomainName = StringRegExpReplace($sInputDomain, "(?:http[s]*\:\/\/)|[0-9a-z-]+\.(?:\.)?(com|net)|[.]|[\/]", "")
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Subdomain : " & $sSubdomainName & @CRLF)
    Local $sUpdateWindowButtons = "Update | Close"
    Local $sUpdateWindowMsg = "Update on GitHub available!"
-   Local $sUpdateWindowMsgHelp = "Help for update on GitHub!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & @CRLF & "Step 4 is not checked!"
+   Local $sWndGithubTitle = "cgm-remote-monitor"
+   Local $sUpdateWindowMsgHelp = "Help for update on GitHub!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & "5. Close this window, when finished!"
    Local $iCheckVersionDev = StringRegExp($sNightscoutVersion, "(dev)")
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check GitHub dev : " & $iCheckVersionDev & @CRLF)
    Local $iCheckVersionRelease = StringRegExp($sNightscoutVersion, "(release)")
@@ -433,43 +449,77 @@ Func _CgmUpdateCheck()
    Local $iCheckGithubAccount = StringRegExp($sInputGithubAccount, "(" & $sIniDefaultGithubAccount & ")")
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check GitHub account : " & $iCheckGithubAccount & @CRLF)
 
-   If $iCheckGithubAccount = 0 Then
-      If $iCheckVersionDev = 1 Then
-         $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, "https://api.github.com")
-         $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
-         $sReturnedCgmUpdateCompare = _WinHttpSimpleReadData($hRequestCgmUpdateCompare)
-         $iCheckMerge = StringRegExp($sReturnedCgmUpdateCompare, $sCheckGithubStatus)
-         If $iCheckMerge = 1 Then
-            $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sUpdateWindowTitle, $sUpdateWindowMsg)
-            Switch $iRetCheckUpdateValue
-               Case 1
-                  ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
-                  Sleep(500)
-                  _ExtMsgBox($EMB_ICONINFO, "Close", $sUpdateWindowTitle, $sUpdateWindowMsgHelp)
-               Case 2
-                  ;Exit
-            EndSwitch
-         EndIf
-      EndIf
-      If $iCheckVersionRelease = 1 Then
-         $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, "https://api.github.com")
-         $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
-         $sReturnedCgmUpdateCompare = _WinHttpSimpleReadData($hRequestCgmUpdateCompare)
-         $iCheckMerge = StringRegExp($sReturnedCgmUpdateCompare, $sCheckGithubStatus)
-         If $iCheckMerge = 1 Then
-            $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sUpdateWindowTitle, $sUpdateWindowMsg)
-            Switch $iRetCheckUpdateValue
-               Case 1
-                  ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
-                  Sleep(500)
-                  _ExtMsgBox($EMB_ICONINFO, "Close", $sUpdateWindowTitle, $sUpdateWindowMsgHelp)
-               Case 2
-                  ;Exit
-            EndSwitch
-         EndIf
-      EndIf
+   Local $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, "https://api.github.com")
+
+   If $iCheckVersionDev = 1 Then
+      $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Update page : " & $sReturnedCgmUpdateCompare & @CRLF)
+   If $iCheckVersionRelease = 1 Then
+      $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
+   EndIf
+
+   Local $sReturnedCgmUpdateCompare = _WinHttpSimpleReadData($hRequestCgmUpdateCompare)
+
+   ; Check valid GitHub-User with repository
+   If StringInStr($sReturnedCgmUpdateCompare, '"message":"Not Found"') Then
+      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Input a valid GitHub-User!" & @CRLF & "The cgm remote monitor repository must exist!")
+      _Settings()
+   EndIf
+
+   ; Write in variable $sDeployOn
+   If StringRegExp($sInputDomain, "(azure)") Then
+      $sDeployOn = "Azure"
+   EndIf
+   If StringRegExp($sInputDomain, "(heroku)") Then
+      $sDeployOn = "Heroku"
+   Else
+      $sDeployOn = "Page for Nightscout"
+   EndIf
+
+   Local $iCheckMerge = StringRegExp($sReturnedCgmUpdateCompare, $sCheckGithubStatus)
+   If $iCheckMerge = 1 Then
+      $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sIniTitleCgmUpdate, $sUpdateWindowMsg)
+      Switch $iRetCheckUpdateValue
+         Case 1
+            If $iCheckVersionDev = 1 Then
+               ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
+               $sBranch = "dev"
+            EndIf
+            If $iCheckVersionRelease = 1 Then
+               ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
+               $sBranch = "master"
+            EndIf
+            _ExtMsgBox($EMB_ICONINFO, "Close", $sIniTitleCgmUpdate, $sUpdateWindowMsgHelp)
+            If StringRegExp($sInputDomain, $sCheckUrlAzure) Then
+               If WinExists($sWndGithubTitle) Then
+                  WinActivate($sWndGithubTitle)
+                  Send("^t")
+                  Sleep(500)
+                  $sOldClip = ClipGet()
+                  ClipPut("https://portal.azure.com")
+                  Send("^v{ENTER}")
+                  ClipPut($sOldClip)
+                  Sleep(500)
+               EndIf
+            EndIf
+            If StringRegExp($sInputDomain, $sCheckUrlHeroku) Then
+               If WinExists($sWndGithubTitle) Then
+                  WinActivate($sWndGithubTitle)
+                  Send("^t")
+                  Sleep(500)
+                  $sOldClip = ClipGet()
+                  ClipPut("https://dashboard.heroku.com/apps/" & $sSubdomainName & "/deploy/github")
+                  Send("^v{ENTER}")
+                  ClipPut($sOldClip)
+                  Sleep(500)
+               EndIf
+            EndIf
+            _ExtMsgBox($EMB_ICONINFO, "Close", "Deploy-Nightscout-Update", "Finally, please open " & $sDeployOn & " and login and choose the " & $sBranch & " branch for deploy!")
+         Case 2
+            ;Exit
+      EndSwitch
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : GitHub-Update-Page : " & $sReturnedCgmUpdateCompare & @CRLF)
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check status merge : " & $iCheckMerge & @CRLF)
    _WinHttpCloseHandle($hConnectCgmUpdateCompare)
 EndFunc
