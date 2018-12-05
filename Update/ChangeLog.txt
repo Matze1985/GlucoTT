@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.9.9.8 (05 December, 2018)
+	Change: Change API for read glucose from entries.json
+
 v2.9.9.7 (11 November, 2018)
 	Add: Update-Helper for Azure and Heroku
 	Add: Added check for upper case in url

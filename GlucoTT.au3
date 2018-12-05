@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.9.9.7
+   #AutoIt3Wrapper_Res_Fileversion=2.9.9.8
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -13,6 +13,7 @@
 #include "Include\ExtMsgBox.au3"
 #include "Include\_Startup.au3"
 #include "Include\TTS UDF.au3"
+#include <Array.au3>
 
 Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
 Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
@@ -142,8 +143,7 @@ EndFunc
 
 Func _Tooltip()
    ; API-Pages
-   Local $sPageCountCurrent = "/api/v1/entries/sgv?count=1"
-   Local $sPageCount = "/api/v1/entries/sgv?count=2"
+   Local $sPageJsonEntries = "/api/v1/entries/sgv.json?count=2"
    Local $sPageJsonState = "/api/v1/status.json"
 
    ; Initialize and get session handle and get connection handle
@@ -158,36 +158,30 @@ Func _Tooltip()
    Local $sWrongMsg = "✕"
 
    ; Make a SimpleSSL request
-   Local $hRequestPageCountCurrentSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageCountCurrent)
-   Local $hRequestPageCountSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageCount)
+   Local $hRequestPageJsonEntriesSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonEntries)
    Local $hRequestPageJsonStateSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonState)
 
    ; Read RequestSSL
-   Local $sReturnedPageCountCurrent = _WinHttpSimpleReadData($hRequestPageCountCurrentSSL)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 1st line : " & $sReturnedPageCountCurrent & @CRLF)
-   Local $sReturnedPageCount = _WinHttpSimpleReadData($hRequestPageCountSSL)
+   Local $sReturnedPageJsonEntries = _WinHttpSimpleReadData($hRequestPageJsonEntriesSSL)
    Local $sReturnedPageJsonState = _WinHttpSimpleReadData($hRequestPageJsonStateSSL)
 
-   ; Match result variables from page
-   Local $iReturnedPageCountCurrentDate = Int(StringMid($sReturnedPageCountCurrent, 30, 13))
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 1st date: " & $iReturnedPageCountCurrentDate & @CRLF)
-   Local $sSecondTextLine = StringReplace($sReturnedPageCount, $sReturnedPageCountCurrent & @LF, "")
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd line : " & $sSecondTextLine & @CRLF)
-
-   Local $sCountMatch = "([2].*[0-9]{13}|.[0-9]{4}|\b[a-z].*)"
-   Local $sText = StringRegExpReplace($sReturnedPageCountCurrent, $sCountMatch, " ")
-   Local $sLastText = StringRegExpReplace($sSecondTextLine, $sCountMatch, " ")
-   Local $iGlucose = Int(StringRegExpReplace($sText, "[^0-9]+", ""))
+   Local $iGlucose = Int(_ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"sgv":([0-9]{1,3}),"', 1))) ; First array result
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Glucose : " & $iGlucose & @CRLF)
-   Local $iLastGlucose = Int(StringRegExpReplace($sLastText, "[^0-9]+", ""))
+   Local $sLastGlucoseValues = _ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"sgv":([0-9]{1,3}),"', 3)) ; Save all array results
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last glucose values : " & $sLastGlucoseValues & @CRLF)
+   Local $iLastGlucose = Int(StringRegExpReplace($sLastGlucoseValues, '.*\|(.*)', '\1')) ; Save 2nd array result
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last glucose : " & $iLastGlucose & @CRLF)
 
    ; Check time readings
-   Local $iYear = Int(StringLeft($sReturnedPageCountCurrent, 4))
-   Local $iMonth = Int(StringMid($sReturnedPageCountCurrent, 6, 2))
-   Local $iDay = Int(StringMid($sReturnedPageCountCurrent, 9, 2))
-   Local $iHour = Int(StringMid($sReturnedPageCountCurrent, 12, 2))
-   Local $iMin = Int(StringMid($sReturnedPageCountCurrent, 15, 2))
-   Local $iSec = Int(StringMid($sReturnedPageCountCurrent, 18, 2))
+   Local $sDate = _ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"dateString":"(.{28})"', 1))
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : DateString : " & $sDate & @CRLF)
+
+   Local $iYear = Int(StringLeft($sDate, 4))
+   Local $iMonth = Int(StringMid($sDate, 6, 2))
+   Local $iDay = Int(StringMid($sDate, 9, 2))
+   Local $iHour = Int(StringMid($sDate, 12, 2))
+   Local $iMin = Int(StringMid($sDate, 15, 2))
+   Local $iSec = Int(StringMid($sDate, 18, 2))
    Local $sLastYearMonthDayHourMinSec = $iYear & "/" & $iMonth & "/" & $iDay & " " & $iHour & ":" & $iMin & ":" & $iSec
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last time on server: " & $sLastYearMonthDayHourMinSec & @CRLF)
    Local $sCurrentYearMonthDayHourMinSec = @YEAR & "/" & @MON & "/" & @MDAY & " " & @HOUR & ":" & @MIN & ":" & @SEC
@@ -231,26 +225,28 @@ Func _Tooltip()
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgTargetTop : " & $iAlertHighUrgent & @CRLF)
 
    ; TrendArrows
-   Local $sTrend
-   If StringInStr($sText, "DoubleUp") Then
+   Local $sDirection = _ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"direction":"(.{1,13})","type"', 1))
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Direction : " & $sDirection & @CRLF)
+
+   If StringInStr($sDirection, "DoubleUp") Then
       $sTrend = "⇈"
    EndIf
-   If StringInStr($sText, "Flat") Then
+   If StringInStr($sDirection, "Flat") Then
       $sTrend = "→︎"
    EndIf
-   If StringInStr($sText, "SingleUp") Then
+   If StringInStr($sDirection, "SingleUp") Then
       $sTrend = "↑"
    EndIf
-   If StringInStr($sText, "FortyFiveUp") Then
+   If StringInStr($sDirection, "FortyFiveUp") Then
       $sTrend = "↗"
    EndIf
-   If StringInStr($sText, "FortyFiveDown") Then
+   If StringInStr($sDirection, "FortyFiveDown") Then
       $sTrend = "↘"
    EndIf
-   If StringInStr($sText, "SingleDown") Then
+   If StringInStr($sDirection, "SingleDown") Then
       $sTrend = "↓"
    EndIf
-   If StringInStr($sText, "DoubleDown") Then
+   If StringInStr($sDirection, "DoubleDown") Then
       $sTrend = "⇊"
    EndIf
 
@@ -320,13 +316,17 @@ Func _Tooltip()
    Global $sUpdateWindowTitle = "Nightscout-Update"
 
    ; Check double upload method to Nightscout
-   Local $iCheckSecondTextLineForDouble = StringRegExp($sSecondTextLine, "(" & $iReturnedPageCountCurrentDate & ")")
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Check 2nd date : " & $iCheckSecondTextLineForDouble & @CRLF)
+   Local $iDate = Int(_ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"date":([0-9]{13}),', 1))) ; First array result
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 1st date : " & $iDate & @CRLF)
+   Local $sLastDates = _ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"date":([0-9]{13}),', 3)) ; Save all array results
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last dates : " & $sLastDates & @CRLF)
+   Local $iLastDate = Int(StringRegExpReplace($sLastDates, '.*\|(.*)', '\1')) ; Save 2nd array result
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd date : " & $iLastDate & @CRLF)
 
    ; Sleep
    If $bMod = True Then
       ; Check upload to Nightscout
-      If $iCheckSecondTextLineForDouble = 1 Then
+      If $iDate = $iLastDate Then
          _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
       EndIf
       If $iCheckboxTextToSpeech = 1 And $bMod = True Then
