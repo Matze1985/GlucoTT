@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.9.9.8
+   #AutoIt3Wrapper_Res_Fileversion=2.9.9.9
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -37,8 +37,8 @@ EndIf
 
 ; Check internet connection on Start/Loop - Return 1 for ON | Return 0 for OFF
 Func _CheckConnection()
-   Local $isReturn = DllCall("wininet.dll", "int", "InternetGetConnectedState", "int", 0, "int", 0)
-   If (@error) Or ($isReturn[0] = 0) Then Return SetError(1, 0, 0)
+   Local $iReturn = DllCall("wininet.dll", "int", "InternetGetConnectedState", "int", 0, "int", 0)
+   If (@error) Or ($iReturn[0] = 0) Then Return SetError(1, 0, 0)
    Return 1
 EndFunc
 
@@ -173,32 +173,34 @@ Func _Tooltip()
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last glucose : " & $iLastGlucose & @CRLF)
 
    ; Check time readings
-   Local $sDate = _ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"dateString":"(.{28})"', 1))
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : DateString : " & $sDate & @CRLF)
+   Local $iDate = Int(_ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"date":([0-9]{13}),"', 1)))
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Date : " & $iDate & @CRLF)
+   Local $sLastDates = _ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"date":([0-9]{13}),"', 3)) ; Save all array results
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last dates : " & $sLastDates & @CRLF)
+   Local $iLastDate = Int(StringRegExpReplace($sLastDates, '.*\|(.*)', '\1')) ; Save 2nd array result
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd date : " & $iLastDate & @CRLF)
+   Local $iServerTimeEpoch = Int(_ArrayToString(StringRegExp($sReturnedPageJsonState, '"serverTimeEpoch":([0-9]{13}),"', 1)))
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Server time epoch : " & $iServerTimeEpoch & @CRLF)
+   Local $iMsServerTimeEpochDate = $iServerTimeEpoch - $iDate
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Server time epoch date (ms) : " & $iMsServerTimeEpochDate & @CRLF)
+   Local $iMin = Round($iMsServerTimeEpochDate / 60000, 0)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Minute : " & $iMin & @CRLF)
 
-   Local $iYear = Int(StringLeft($sDate, 4))
-   Local $iMonth = Int(StringMid($sDate, 6, 2))
-   Local $iDay = Int(StringMid($sDate, 9, 2))
-   Local $iHour = Int(StringMid($sDate, 12, 2))
-   Local $iMin = Int(StringMid($sDate, 15, 2))
-   Local $iSec = Int(StringMid($sDate, 18, 2))
-   Local $sLastYearMonthDayHourMinSec = $iYear & "/" & $iMonth & "/" & $iDay & " " & $iHour & ":" & $iMin & ":" & $iSec
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last time on server: " & $sLastYearMonthDayHourMinSec & @CRLF)
-   Local $sCurrentYearMonthDayHourMinSec = @YEAR & "/" & @MON & "/" & @MDAY & " " & @HOUR & ":" & @MIN & ":" & @SEC
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Local time: " & $sCurrentYearMonthDayHourMinSec & @CRLF)
-   Local $bMod = Mod(@SEC, $iSec) = @SEC
+   ; bMod for alarm and speech - modulus operation
+   Local $bMod = Mod($iServerTimeEpoch, $iDate)
+
+   ; Calculate ms for sleep
+   Local $iMsWait
+   If $iMin == 0 Then
+      $iMsWait = Round(60000 - $iMsServerTimeEpochDate, 0)
+   Else
+      $iMsWait = Round($iMsServerTimeEpochDate / $iMin, 0)
+   EndIf
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Sleep : " & $iMsWait & @CRLF)
 
    ; Check Nightscout version
    Global $sNightscoutVersion = StringRegExpReplace($sReturnedPageJsonState, '.*"version":("|)([^"]+)("|),.*', '\2')
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Nightscout version : " & $sNightscoutVersion & @CRLF)
-
-   ; Reading last glucose (min)
-   Local $iLastReadingGlucoseMin = _DateDiff('n', $sLastYearMonthDayHourMinSec, $sCurrentYearMonthDayHourMinSec)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last reading glucose (min) : " & $iLastReadingGlucoseMin & @CRLF)
-
-   ; Interval for loop interval to read glucose
-   Local $iReadInterval = 60000
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Read interval (ms) : " & $iReadInterval & @CRLF)
 
    ; Settings check for json: status
    Local $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":("|)([^"]+)("|),.*', '\2')
@@ -286,9 +288,9 @@ Func _Tooltip()
    If $iGlucose <= $iAlertLow Or $iGlucose >= $iAlertHigh Or $iGlucose <= $iAlertLowUrgent Or $iGlucose >= $iAlertHighUrgent Then
       $iAlarm = 2 ;=Warning icon
       ; Play alarm from windows media folder (tada.wav)
-      If $iCheckboxPlayAlarm = 1 And $bMod = True Then
-         If @MIN = @MIN + $iLastReadingGlucoseMin And $bMod = True Then
-            SoundPlay(@WindowsDir & "\media\tada.wav", 0)
+      If $iCheckboxPlayAlarm = 1 Then
+         If $iMin == 0 And $bMod = True Then
+            SoundPlay($sInputDomain & "/audio/alarm.mp3", 0)
          EndIf
       EndIf
    Else
@@ -307,7 +309,7 @@ Func _Tooltip()
    If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
       ToolTip($sWrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $sWrongMsg, 3, 2)
    Else
-      ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iLastReadingGlucoseMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
+      ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
    EndIf
 
    ; Check TTS option and locals, globals
@@ -315,27 +317,19 @@ Func _Tooltip()
    Local $sGlucoseTextToSpeech = StringReplace($i_fGlucoseResult, ".", ",")
    Global $sUpdateWindowTitle = "Nightscout-Update"
 
-   ; Check double upload method to Nightscout
-   Local $iDate = Int(_ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"date":([0-9]{13}),', 1))) ; First array result
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 1st date : " & $iDate & @CRLF)
-   Local $sLastDates = _ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"date":([0-9]{13}),', 3)) ; Save all array results
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last dates : " & $sLastDates & @CRLF)
-   Local $iLastDate = Int(StringRegExpReplace($sLastDates, '.*\|(.*)', '\1')) ; Save 2nd array result
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd date : " & $iLastDate & @CRLF)
-
    ; Sleep
    If $bMod = True Then
       ; Check upload to Nightscout
-      If $iDate = $iLastDate Then
+      If $iDate == $iLastDate Then
          _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
       EndIf
-      If $iCheckboxTextToSpeech = 1 And $bMod = True Then
-         ; Read interval (@MIN + last reading glucose)
-         If @MIN = @MIN + $iLastReadingGlucoseMin Then
+      If $iCheckboxTextToSpeech = 1 Then
+         ; Read every zero minutes
+         If $iMin == 0 And $bMod = True Then
             _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
          EndIf
       EndIf
-      Sleep($iReadInterval)
+      Sleep($iMsWait) ; Sleep with minus of delay
       ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
       If $iCheckboxCgmUpdate = 1 Then
          If Not WinExists($sUpdateWindowTitle) Then
@@ -401,7 +395,6 @@ Func _Settings()
    Local $hCheckboxPlayAlarm = GUICtrlCreateCheckbox($sIniTitlePlayAlarm, 230, 60, 80, 20)
    GUICtrlSetState($hCheckboxPlayAlarm, $iCheckboxPlayAlarm)
    $hDonate = GUICtrlCreateButton("Donate", 230, 80, 80, 40)
-   ;GUICtrlCreateLabel($sIniTitleGithubAccount, 10, 125, 300)
    Local $hCheckboxCgmUpdate = GUICtrlCreateCheckbox($sIniTitleCgmUpdate, 10, 120, 300, 20)
    GUICtrlSetState($hCheckboxCgmUpdate, $iCheckboxCgmUpdate)
    Local $hInputGithubAccount = GUICtrlCreateInput($sInputGithubAccount, 10, 140, 300, 20)

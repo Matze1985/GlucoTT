@@ -1,6 +1,11 @@
 ChangeLog
 
 Summarized history of the changes:
+v2.9.9.9 (29 December, 2018)
+	Change: Read glucose from unix epoch time
+	Change: Modulus operation
+	Change: Play alarm from Nightscout
+
 v2.9.9.8 (05 December, 2018)
 	Change: Change API for read glucose from entries.json
 
