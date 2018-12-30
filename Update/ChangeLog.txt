@@ -1,6 +1,11 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.0.0 (30 December, 2018)
+	Change: Read glucose from unix epoch time
+	Change: Change: Change modulus operation (ms to min)
+	Change: Change update check for cgm-remote-monitor
+
 v2.9.9.9 (29 December, 2018)
 	Change: Read glucose from unix epoch time
 	Change: Modulus operation

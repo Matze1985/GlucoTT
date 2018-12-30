@@ -2,18 +2,18 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=2.9.9.9
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <TrayConstants.au3>
+#include <Array.au3>
 #include "Include\CheckUpdate.au3"
 #include "Include\WinHttp.au3"
 #include "Include\ExtMsgBox.au3"
 #include "Include\_Startup.au3"
 #include "Include\TTS UDF.au3"
-#include <Array.au3>
 
 Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
 Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
@@ -183,11 +183,10 @@ Func _Tooltip()
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Server time epoch : " & $iServerTimeEpoch & @CRLF)
    Local $iMsServerTimeEpochDate = $iServerTimeEpoch - $iDate
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Server time epoch date (ms) : " & $iMsServerTimeEpochDate & @CRLF)
-   Local $iMin = Round($iMsServerTimeEpochDate / 60000, 0)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Minute : " & $iMin & @CRLF)
-
-   ; bMod for alarm and speech - modulus operation
-   Local $bMod = Mod($iServerTimeEpoch, $iDate)
+   Local $fMin = Round($iMsServerTimeEpochDate / 60000, 1)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Minute (float) : " & $fMin & @CRLF)
+   Local $iMin = Int(StringLeft($fMin, 1))
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Minute (int) : " & $iMin & @CRLF)
 
    ; Calculate ms for sleep
    Local $iMsWait
@@ -197,6 +196,9 @@ Func _Tooltip()
       $iMsWait = Round($iMsServerTimeEpochDate / $iMin, 0)
    EndIf
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Sleep : " & $iMsWait & @CRLF)
+
+   ; bMod for alarm and speech - modulus operation
+   Local $bMod = Mod($iMsWait, 60000)
 
    ; Check Nightscout version
    Global $sNightscoutVersion = StringRegExpReplace($sReturnedPageJsonState, '.*"version":("|)([^"]+)("|),.*', '\2')
@@ -287,7 +289,7 @@ Func _Tooltip()
    Local $iAlarm
    If $iGlucose <= $iAlertLow Or $iGlucose >= $iAlertHigh Or $iGlucose <= $iAlertLowUrgent Or $iGlucose >= $iAlertHighUrgent Then
       $iAlarm = 2 ;=Warning icon
-      ; Play alarm from windows media folder (tada.wav)
+      ; Play alarm from Nightscout (alarm.mp3)
       If $iCheckboxPlayAlarm = 1 Then
          If $iMin == 0 And $bMod = True Then
             SoundPlay($sInputDomain & "/audio/alarm.mp3", 0)
@@ -329,9 +331,9 @@ Func _Tooltip()
             _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
          EndIf
       EndIf
-      Sleep($iMsWait) ; Sleep with minus of delay
+      Sleep($iMsWait)
       ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
-      If $iCheckboxCgmUpdate = 1 Then
+      If $iCheckboxCgmUpdate = 1 And $iMsWait >= 60000 Then
          If Not WinExists($sUpdateWindowTitle) Then
             _CgmUpdateCheck()
          EndIf
