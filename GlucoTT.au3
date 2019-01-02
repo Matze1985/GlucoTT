@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.0
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.1
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -92,7 +92,7 @@ If $iCheckboxUpdate = 1 Then
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : @error " & @error & @CRLF)
 EndIf
 
-; Check Shortcut state from ini file
+; Check Shortcut Status from ini file
 If $iCheckboxAutostart < 4 Then
    _StartupRegistry_Install() ; Add the running EXE to the Current Users Run registry key.
 Else
@@ -144,7 +144,7 @@ EndFunc
 Func _Tooltip()
    ; API-Pages
    Local $sPageJsonEntries = "/api/v1/entries/sgv.json?count=2"
-   Local $sPageJsonState = "/api/v1/status.json"
+   Local $sPageJsonStatus = "/api/v1/status.json"
 
    ; Initialize and get session handle and get connection handle
    Global $hOpen = _WinHttpOpen()
@@ -159,11 +159,11 @@ Func _Tooltip()
 
    ; Make a SimpleSSL request
    Local $hRequestPageJsonEntriesSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonEntries)
-   Local $hRequestPageJsonStateSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonState)
+   Local $hRequestPageJsonStatusSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonStatus)
 
    ; Read RequestSSL
    Local $sReturnedPageJsonEntries = _WinHttpSimpleReadData($hRequestPageJsonEntriesSSL)
-   Local $sReturnedPageJsonState = _WinHttpSimpleReadData($hRequestPageJsonStateSSL)
+   Local $sReturnedPageJsonStatus = _WinHttpSimpleReadData($hRequestPageJsonStatusSSL)
 
    Local $iGlucose = Int(_ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"sgv":([0-9]{1,3}),"', 1))) ; First array result
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Glucose : " & $iGlucose & @CRLF)
@@ -179,53 +179,54 @@ Func _Tooltip()
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Last dates : " & $sLastDates & @CRLF)
    Local $iLastDate = Int(StringRegExpReplace($sLastDates, '.*\|(.*)', '\1')) ; Save 2nd array result
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : 2nd date : " & $iLastDate & @CRLF)
-   Local $iServerTimeEpoch = Int(_ArrayToString(StringRegExp($sReturnedPageJsonState, '"serverTimeEpoch":([0-9]{13}),"', 1)))
+   Local $iServerTimeEpoch = Int(_ArrayToString(StringRegExp($sReturnedPageJsonStatus, '"serverTimeEpoch":([0-9]{13}),"', 1)))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Server time epoch : " & $iServerTimeEpoch & @CRLF)
-   Local $iMsServerTimeEpochDate = $iServerTimeEpoch - $iDate
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Server time epoch date (ms) : " & $iMsServerTimeEpochDate & @CRLF)
-   Local $fMin = Round($iMsServerTimeEpochDate / 60000, 1)
+   Local $fMin = Round(Int($iServerTimeEpoch - $iDate) / 60000, 1)
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Minute (float) : " & $fMin & @CRLF)
-   Local $iMin = Int(StringLeft($fMin, 1))
+   Local $iMin = Int($fMin)
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Minute (int) : " & $iMin & @CRLF)
+   Local $fZeroMin = StringMid(Number($fMin - Int($fMin) - 1), 2)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Minute zero diff (float) : " & $fZeroMin & @CRLF)
+   Local $iMinInterval = Round(Int($iDate - $iLastDate) / 60000, 0)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Minute interval (int) : " & $iMinInterval & @CRLF)
 
-   ; Calculate ms for sleep
-   Local $iMsWait
-   If $iMin == 0 Then
-      $iMsWait = Round(60000 - $iMsServerTimeEpochDate, 0)
-   Else
-      $iMsWait = Round($iMsServerTimeEpochDate / $iMin, 0)
+   ; Calculate ms for sleep with interval logic
+   Local $i_MsWait = Round(60000 * $fZeroMin, 0)
+   Local $fMinIntervalCheck = $iMinInterval & ".1" ; Wait 60000 x 0.1 = max. 6000 ms
+   If $iMin == $iMinInterval And $fMin <= $fMinIntervalCheck Then
+      $i_MsWait = 1000
    EndIf
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Sleep : " & $iMsWait & @CRLF)
+   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Sleep for wait : " & $i_MsWait & @CRLF)
 
    ; bMod for alarm and speech - modulus operation
-   Local $bMod = Mod($iMsWait, 60000)
+   Local $bMod = Mod($iDate, $iServerTimeEpoch)
 
    ; Check Nightscout version
-   Global $sNightscoutVersion = StringRegExpReplace($sReturnedPageJsonState, '.*"version":("|)([^"]+)("|),.*', '\2')
+   Global $sNightscoutVersion = StringRegExpReplace($sReturnedPageJsonStatus, '.*"version":("|)([^"]+)("|),.*', '\2')
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Nightscout version : " & $sNightscoutVersion & @CRLF)
 
    ; Settings check for json: status
-   Local $sStatus = StringRegExpReplace($sReturnedPageJsonState, '.*"status":("|)([^"]+)("|),.*', '\2')
+   Local $sStatus = StringRegExpReplace($sReturnedPageJsonStatus, '.*"status":("|)([^"]+)("|),.*', '\2')
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : status : " & $sStatus & @CRLF)
 
    ; Settings check for json: units
-   Local $sReadOption = StringRegExpReplace($sReturnedPageJsonState, '.*"units":("|)([^"]+)("|),.*', '\2')
+   Local $sReadOption = StringRegExpReplace($sReturnedPageJsonStatus, '.*"units":("|)([^"]+)("|),.*', '\2')
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : units : " & $sReadOption & @CRLF)
 
    ; Alarm settings check for json: alarm bgLow
-   Local $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgLow":("|)([^"]+)("|),.*', '\2'))
+   Local $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonStatus, '.*"bgLow":("|)([^"]+)("|),.*', '\2'))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgLow : " & $iAlertLow & @CRLF)
 
    ; Alarm settings check for json: alarm bgHigh
-   Local $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgHigh":("|)([^"]+)("|),.*', '\2'))
+   Local $iAlertHigh = Int(StringRegExpReplace($sReturnedPageJsonStatus, '.*"bgHigh":("|)([^"]+)("|),.*', '\2'))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgHigh : " & $iAlertHigh & @CRLF)
 
    ; Alarm settings check for json: alarm UrgentLow for bgTargetBottom
-   Local $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetBottom":("|)([^"]+)("|),.*', '\2'))
+   Local $iAlertLowUrgent = Int(StringRegExpReplace($sReturnedPageJsonStatus, '.*"bgTargetBottom":("|)([^"]+)("|),.*', '\2'))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgTargetBottom : " & $iAlertLowUrgent & @CRLF)
 
    ; Alarm settings check for json: alarm UrgentHigh for bgTargetTop
-   Local $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonState, '.*"bgTargetTop":("|)([^"]+)("|),.*', '\2'))
+   Local $iAlertHighUrgent = Int(StringRegExpReplace($sReturnedPageJsonStatus, '.*"bgTargetTop":("|)([^"]+)("|),.*', '\2'))
    If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : bgTargetTop : " & $iAlertHighUrgent & @CRLF)
 
    ; TrendArrows
@@ -322,7 +323,7 @@ Func _Tooltip()
    ; Sleep
    If $bMod = True Then
       ; Check upload to Nightscout
-      If $iDate == $iLastDate Then
+      If $iDate == $iLastDate And StringRegExp($iDate & $iLastDate, '([0-9]{13})') Then
          _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
       EndIf
       If $iCheckboxTextToSpeech = 1 Then
@@ -331,9 +332,9 @@ Func _Tooltip()
             _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
          EndIf
       EndIf
-      Sleep($iMsWait)
+      Sleep($i_MsWait)
       ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
-      If $iCheckboxCgmUpdate = 1 And $iMsWait >= 60000 Then
+      If $iCheckboxCgmUpdate = 1 And $i_MsWait = 60000 Then
          If Not WinExists($sUpdateWindowTitle) Then
             _CgmUpdateCheck()
          EndIf
