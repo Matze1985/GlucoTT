@@ -20,9 +20,6 @@
 ; 	UDF-URL........: https://www.autoitscript.com/forum/topic/162107-checkupdate-autoupdate-a-running-script-or-exe-over-the-web/
 ;----------------------------------------------------------------------------------------------------------------------------------
 
-; Locals
-Local $sLogTime = @MDAY & "-" & @MON & "-" & @YEAR & "-" & @HOUR & ":" & @MIN & ":" & @SEC
-
 ; Globals
 Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
 
@@ -64,7 +61,8 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
    ; 					Note: In case of error, just continue with current script...
    ;
    ; Author ........: GreenCan
-   ; Modified.......: 		24.10.2018 - Matze1985 - Adding wait for starting downloaded file
+   ; Modified.......: 		06.01.2019 - Matze1985 - Change report for debug
+   ;						24.10.2018 - Matze1985 - Adding wait for starting downloaded file
    ;						14.01.2018 - Matze1985 - Change "backup old file" to "remove old file"
    ; Remarks .......: 		The script version has format x.x.x.x !
    ;						In case the script (or exe) has been renamed (and does not correspond to the original file name),
@@ -100,7 +98,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
       Local $procwatchPID, $aVersion, $iNewVersion, $iCurrentVersion, $iBufferSize = 0x80000, $iCRC, $iCRC32 = 0, $sData, $FileSize, $i_FileSize, $hFile
       $sINI_Data = InetRead($sUpdateINI, $InetForceReload) ; get the ini file
       If Not @error Then
-         If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Update file found" & @CRLF)
+		 _DebugOut("CheckUpdate: Update file found")
          $sINI_Data = BinaryToString($sINI_Data)
          ; read the ini file in memory
          $sNewVersion = IniMemoryRead($sINI_Data, $sFileToUpdate, "version", "")
@@ -112,7 +110,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
             $iCRC = IniMemoryRead($sINI_Data, $sFileToUpdate, "CRC", 0)
             $sChangesURL = IniMemoryRead($sINI_Data, $sFileToUpdate, "changes", 0)
 
-            If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : " & $sCurrentVersion & " - New: " & $sNewVersion & "<" & @CRLF)
+			_DebugOut("CheckUpdate: " & $sCurrentVersion & " - New: " & $sNewVersion & "<")
 
             ; convert version x.x.x.x to a number where each x can go up to 999, so the max number can be 999 999 999 999
             ; so version 1.0.1.29 will be converted to 1000001029  (001.000.001.029)
@@ -154,7 +152,8 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
 
                If $Return = 7 Then ;  download
                   _PathSplit($sFileToUpdate, $szDrive, $szDir, $szFName, $szExt)
-                  If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Downloading " & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt & @CRLF)
+				  _DebugOut("CheckUpdate: Downloading " & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt)
+
                   InetgetProgress($sURL, @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt)
                   If @error Then
                      _ExtMsgBox(16, $MB_OK, "Error", "Download failure " & @CR & _
@@ -186,7 +185,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                                  FileDelete(@ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt) ; delete the file because it may be corrupt
                            Return SetError(7, 0, 0)
                         Else
-                           If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : CRC Checksum successful " & Hex($iCRC32, 8) & @CRLF)
+						   _DebugOut("CheckUpdate: CRC Checksum successful " & Hex($iCRC32, 8))
                            ; download successful, exit this program just after starting the temporary batch file that does following:
                            ; 1. wait for a few seconds to enable to current script to Exit (using ping trick)
                            ; 2. delete old file
@@ -234,19 +233,19 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                      EndIf
                   EndIf
                Else
-                  If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : User refused Update" & @CRLF)
+				  _DebugOut("CheckUpdate: User refused Update")
                   Return SetError(2, 0, 0)
                EndIf
             Else
-               If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : No newer version available" & @CRLF)
+			    _DebugOut("CheckUpdate: No newer version available")
                Return SetError(1, 0, 0)
             EndIf
          Else
-            If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Version info not available in Update file" & @CRLF)
+			 _DebugOut("CheckUpdate: Version info not available in Update file")
             Return SetError(4, 0, 0)
          EndIf
-      Else
-         If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : Update file not available" & @CRLF)
+	 Else
+		 _DebugOut("CheckUpdate: Update file not available")
          Return SetError(3, 0, 0)
       EndIf
 
@@ -392,7 +391,7 @@ Func InetgetProgress($sURL, $sFilename)
    _PathSplit($sURL, $szDrive, $szDir, $szFName, $szExt)
    $iSize = InetGetSize($sURL)
    $iTotalSize = Round($iSize / 1024)
-   If Not @Compiled Then ConsoleWrite("@@ Debug(" & @ScriptLineNumber & ") : " & $sLogTime & " : $szFName & $szExt: " & $szFName & $szExt & " $sURL: " & $sURL & @CRLF)
+   _DebugOut("CheckUpdate: $szFName & $szExt: " & $szFName & $szExt & " $sURL: " & $sURL)
    $hDownload = InetGet($sURL, $sFilename, 16, 1) ; from InetConstants.au3:  $INET_FORCEBYPASS (16) = By-pass forcing the connection online, $INET_DOWNLOADBACKGROUND (1) = Background download
    ProgressOn("Download " & $szFName & $szExt, "Download progress")
    Do

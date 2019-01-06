@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.0.2 (06 January, 2019)
+	Add: Added debug environment
+
 v3.0.0.1 (02 January, 2019)
 	Change: Read glucose interval
 	Change: Change: Change modulus operation
