@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.3
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.4
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -210,10 +210,17 @@ Func _Tooltip()
 
    ; Calculate ms for sleep with interval logic
    Local $i_MsWait = Int(Round(60000 * $i_fZeroMin, 0))
-   Local $fMinIntervalCheck = $iMinInterval & ".1" ; Wait 60000 x 0.1 = max. 6000 ms
+   Local $fMinIntervalCheck = Number(0.1) ; Wait 60000 x 0.1 = max. 6000 ms
+   _DebugReportVar("$fMinIntervalCheck", $iMinInterval)
 
    ; Check the first three intervals
-   If $iMin == $iMinInterval And $fMin <= $fMinIntervalCheck Or $iMin == 2 * $iMinInterval And $fMin <= $fMinIntervalCheck And $iMin == 3 * $iMinInterval And $fMin <= $fMinIntervalCheck Then
+   If $iMin == $iMinInterval And $fMin <= $iMinInterval + $fMinIntervalCheck Then
+      $i_MsWait = 1000
+   EndIf
+   If $iMin == 2 * $iMinInterval And $fMin <= 2 * $iMinInterval + $fMinIntervalCheck Then
+      $i_MsWait = 1000
+   EndIf
+   If $iMin == 3 * $iMinInterval And $fMin <= 3 * $iMinInterval + $fMinIntervalCheck Then
       $i_MsWait = 1000
    EndIf
    _DebugReportVar("$i_MsWait", $i_MsWait)

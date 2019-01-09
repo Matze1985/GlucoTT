@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.0.4 (09 January, 2019)
+	Change: Exact check for the first three intervals for glucose updates (Change to If)
+
 v3.0.0.3 (09 January, 2019)
 	Change: Change debug log name (@YEAR & @MON & @MDAY)
 	Change: Bugfixes (Change variable name)
