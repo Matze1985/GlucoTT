@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.2
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.3
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -83,7 +83,7 @@ Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGi
 
 ; Start displaying debug environment
 If $iCheckboxLog = 1 Then
-   _DebugSetup($sTitle, True, 4, $sTitle & ".log", True)
+   _DebugSetup($sTitle, True, 4, $sTitle & "_" & @YEAR & "-" & @MON & "-" & @MDAY & ".log", True)
 EndIf
 If Not @Compiled Then
    _DebugSetup($sTitle, True)
@@ -99,11 +99,6 @@ EndIf
 If StringRegExp($sInputGithubAccount, '^\s*$') Then
    _DebugOut("Empty GitHub user entered")
    $sInputGithubAccount = $sIniDefaultGithubAccount
-EndIf
-
-; Check for updates
-If $iCheckboxUpdate = 1 Then
-   CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
 EndIf
 
 ; Check Shortcut Status from ini file
@@ -216,7 +211,9 @@ Func _Tooltip()
    ; Calculate ms for sleep with interval logic
    Local $i_MsWait = Int(Round(60000 * $i_fZeroMin, 0))
    Local $fMinIntervalCheck = $iMinInterval & ".1" ; Wait 60000 x 0.1 = max. 6000 ms
-   If $iMin == $iMinInterval And $fMin <= $fMinIntervalCheck Then
+
+   ; Check the first three intervals
+   If $iMin == $iMinInterval And $fMin <= $fMinIntervalCheck Or $iMin == 2 * $iMinInterval And $fMin <= $fMinIntervalCheck And $iMin == 3 * $iMinInterval And $fMin <= $fMinIntervalCheck Then
       $i_MsWait = 1000
    EndIf
    _DebugReportVar("$i_MsWait", $i_MsWait)
@@ -280,7 +277,7 @@ Func _Tooltip()
    _DebugReportVar("$sTrend", $sTrend)
 
    ; Check mmol/l option
-   Local $fCalcGlucose, $fGlucoseMmol, $lastGlucoseMmol, $i_fGlucoseResult, $i_fLastGlucoseResult, $fGlucoseResultTmp, $fLastGlucoseResultTmp
+   Local $fCalcGlucose, $fGlucoseMmol, $fLastGlucoseMmol, $i_fGlucoseResult, $i_fLastGlucoseResult, $fGlucoseResultTmp, $fLastGlucoseResultTmp
    If $sReadOption = "mmol" Then
       ; Calculate mmol/l
       $fCalcGlucose = Number(18.01559 * 10 / 10, 3) ; 3=the result is double
@@ -359,9 +356,15 @@ Func _Tooltip()
       EndIf
       Sleep($i_MsWait)
       ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
-      If $iCheckboxCgmUpdate = 1 And $i_MsWait = 60000 Then
-         If Not WinExists($sUpdateWindowTitle) Then
-            _CgmUpdateCheck()
+      If $i_MsWait = 60000 Then
+         ; Check for app updates
+         If $iCheckboxUpdate = 1 Then
+            CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
+         EndIf
+         If $iCheckboxCgmUpdate = 1 Then
+            If Not WinExists($sUpdateWindowTitle) Then
+               _CgmUpdateCheck()
+            EndIf
          EndIf
       EndIf
    EndIf
@@ -438,6 +441,7 @@ Func _Settings()
       $msg = GUIGetMsg()
       Select
          Case $msg = $hSave Or _IsPressed("0D", $hDLL)
+            _DebugOut("Save settings")
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleNightscout, GUICtrlRead($hInputDomain))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, GUICtrlRead($hInputDesktopWidth))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, GUICtrlRead($hInputDesktopHeight))
@@ -450,8 +454,10 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, GUICtrlRead($hInputGithubAccount))
             _Restart()
          Case $msg = $hDonate
+            _DebugOut("Click on Donate")
             ShellExecute("https://www.paypal.me/MathiasN")
          Case $msg = $GUI_EVENT_CLOSE Or _IsPressed("1B", $hDLL)
+            _DebugOut("Close settings")
             GUIDelete($sIniCategory)
       EndSelect
    WEnd
