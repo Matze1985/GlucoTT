@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.0.5 (10 January, 2019)
+	Change: Bugfix for $sTrend
+
 v3.0.0.4 (09 January, 2019)
 	Change: Exact check for the first three intervals for glucose updates (Change to If)
 

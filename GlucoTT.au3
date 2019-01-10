@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.4
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.5
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -260,6 +260,7 @@ Func _Tooltip()
    Local $sDirection = _ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"direction":"(.{1,13})","type"', 1))
    _DebugReportVar("$sDirection", $sDirection)
 
+   Local $sTrend
    If StringInStr($sDirection, "DoubleUp") Then
       $sTrend = "⇈"
    EndIf
