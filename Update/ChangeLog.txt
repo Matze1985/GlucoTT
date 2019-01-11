@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.0.6 (11 January, 2019)
+	Add: Added log info and action 
+	Change: Check existing log for better working file creation
+
 v3.0.0.5 (10 January, 2019)
 	Change: Bugfix for $sTrend
 

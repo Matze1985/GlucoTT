@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.5
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.6
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -27,12 +27,16 @@ HotKeySet("^!s", "_Settings")
 HotKeySet("^!h", "_Help")
 HotKeySet("^!e", "_Exit")
 
+; Debug
+Local $sDebugAction = "@@ Action     : "
+Local $sDebugInfo = "@@ Info       : "
+
 ; App title
 Local $sTitle = StringRegExpReplace(@ScriptName, ".au3|.exe", "")
 
 ; Check for another instance of this program
 If _Singleton($sTitle, 1) = 0 Then
-   _DebugOut("Another instance is already running")
+   _DebugOut($sDebugInfo & "Another instance is already running")
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Another instance of this program is already running.")
    Exit
 EndIf
@@ -83,7 +87,17 @@ Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGi
 
 ; Start displaying debug environment
 If $iCheckboxLog = 1 Then
-   _DebugSetup($sTitle, True, 4, $sTitle & "_" & @YEAR & "-" & @MON & "-" & @MDAY & ".log", True)
+   Local $sFile = $sTitle & "_" & @YEAR & "-" & @MON & "-" & @MDAY & ".log"
+   ; Check existing log
+   Local $iCreateFileDebug = 0
+   If Not FileExists($sFile) Then
+      $iCreateFileDebug = 1
+      FileOpen($sFile, 1)
+   EndIf
+   _DebugSetup($sTitle, True, 4, $sFile, True)
+   If $iCreateFileDebug = 1 Then
+      _DebugOut($sDebugInfo & "Created -> " & $sFile)
+   EndIf
 EndIf
 If Not @Compiled Then
    _DebugSetup($sTitle, True)
@@ -91,36 +105,36 @@ EndIf
 
 ; Check empty input for Nightscout
 If StringRegExp($sInputDomain, '^\s*$') Then
-   _DebugOut("Empty domain entered")
+   _DebugOut($sDebugInfo & "Empty domain entered")
    $sInputDomain = $sIniDefaultNightscout
 EndIf
 
 ; Check empty input for GitHub-User
 If StringRegExp($sInputGithubAccount, '^\s*$') Then
-   _DebugOut("Empty GitHub user entered")
+   _DebugOut($sDebugInfo & "Empty GitHub user entered")
    $sInputGithubAccount = $sIniDefaultGithubAccount
 EndIf
 
 ; Check Shortcut Status from ini file
 If $iCheckboxAutostart < 4 Then
-   _DebugOut("Set autostart in registry")
+   _DebugOut($sDebugInfo & "Set autostart in registry")
    _StartupRegistry_Install() ; Add the running EXE to the Current Users Run registry key.
 Else
-   _DebugOut("Remove autostart from registry")
+   _DebugOut($sDebugInfo & "Remove autostart from registry")
    _StartupRegistry_Uninstall() ; Remove the running EXE from the Current Users Run registry key.
 EndIf
 
 ; Check Domain settings
 Local $iCheckDomain = StringRegExp($sInputDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\"{"\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?')
 If $iCheckDomain = 0 Then
-   _DebugOut("Wrong input for domain")
+   _DebugOut($sDebugInfo & "Wrong input for domain")
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong URL for Nightscout set!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://account.azurewebsites.net")
    _Settings()
 EndIf
 
 ; Check upper case in url
 If StringRegExp($sInputDomain, '([A-Z])') Then
-   _DebugOut("Wrong domain with upper case")
+   _DebugOut($sDebugInfo & "Wrong domain with upper case")
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Upper case in url not allowed!")
    _Settings()
 EndIf
@@ -128,7 +142,7 @@ EndIf
 ; Check desktop width and height settings
 Local $iCheckNumbers = StringRegExp($sInputDesktopWidth & $sInputDesktophHeight, '^[0-9]+$')
 If $iCheckNumbers = 0 Then
-   _DebugOut("Only numbers allowed for Desktop width/height")
+   _DebugOut($sDebugInfo & "Only numbers allowed for Desktop width/height")
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers allowed in the fields, please check:" & @CRLF & @CRLF & "- Desktop width (minus)" & @CRLF & "- Desktop height (minus)")
    _Settings()
 EndIf
@@ -136,7 +150,7 @@ EndIf
 ; Check checkbox options
 If $iCheckboxAutostart = 1 Or $iCheckboxAutostart = 4 And $iCheckboxUpdate = 1 Or $iCheckboxUpdate = 4 And $iCheckboxTextToSpeech = 1 Or $iCheckboxTextToSpeech = 4 And $iCheckboxPlayAlarm = 1 Or $iCheckboxPlayAlarm = 4 And $iCheckboxCgmUpdate = 1 Or $iCheckboxCgmUpdate = 4 Then
 Else
-   _DebugOut("Only number 1 (on) or 4 (off) for checkboxes allowed")
+   _DebugOut($sDebugInfo & "Only number 1 (on) or 4 (off) for checkboxes allowed")
    ShellExecute(@ScriptDir & "\" & $sFile)
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers for options allowed, please check your ini file:" & @CRLF & @CRLF & "- Checkbox number: 1 (on)" & @CRLF & "- Checkbox number: 4 (off)")
    WinWaitClose($sFile)
@@ -146,14 +160,14 @@ EndIf
 ; Check GitHub-Account
 Local $iCheckGithub = StringRegExp($sInputGithubAccount, '^[A-Za-z0-9_-]{3,15}$')
 If $iCheckGithub = 0 And $iCheckboxCgmUpdate = 1 Then
-   _DebugOut("Wrong GitHub Username")
+   _DebugOut($sDebugAction & "Wrong GitHub Username")
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong GitHub Username!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://github.com/USERNAME" & @CRLF & @CRLF & "For no update check:" & @CRLF & "Disable the option " & $sIniTitleCgmUpdate & "!")
    _Settings()
 EndIf
 
 ; After closing restarts the app
 Func _Restart()
-   _DebugOut("Restart app")
+   _DebugOut($sDebugAction & "Restart app")
    Run(@ComSpec & " /c " & 'TIMEOUT /T 1 & START "" "' & @ScriptFullPath & '"', "", @SW_HIDE)
    Exit
 EndFunc
@@ -353,7 +367,7 @@ Func _Tooltip()
    If $bMod = True Then
       ; Check upload to Nightscout
       If $iDate == $iLastDate And StringRegExp($iDate & $iLastDate, '([0-9]{13})') Then
-         _DebugOut("More than one upload method selected")
+         _DebugOut($sDebugInfo & "More than one upload method selected")
          _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
       EndIf
       If $iCheckboxTextToSpeech = 1 Then
@@ -406,18 +420,18 @@ EndFunc
 
 ; Set function for buttons in TrayMenu
 Func _Nightscout()
-   _DebugOut("Open Nightscout")
+   _DebugOut($sDebugAction & "Open Nightscout")
    ShellExecute($sInputDomain)
 EndFunc
 
 Func _Help()
-   _DebugOut("Open Help")
+   _DebugOut($sDebugAction & "Open Help")
    ShellExecute("https://github.com/Matze1985/GlucoTT/wiki")
 EndFunc
 
 ; Set settings in GUI
 Func _Settings()
-   _DebugOut("Open Settings")
+   _DebugOut($sDebugAction & "Open Settings")
    Local $hDLL = DllOpen("user32.dll")
    Local $hSave, $hDonate, $msg
    GUICreate($sIniCategory, 320, 190, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
@@ -449,7 +463,7 @@ Func _Settings()
       $msg = GUIGetMsg()
       Select
          Case $msg = $hSave Or _IsPressed("0D", $hDLL)
-            _DebugOut("Save settings")
+            _DebugOut($sDebugAction & "Save settings")
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleNightscout, GUICtrlRead($hInputDomain))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, GUICtrlRead($hInputDesktopWidth))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, GUICtrlRead($hInputDesktopHeight))
@@ -462,10 +476,10 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, GUICtrlRead($hInputGithubAccount))
             _Restart()
          Case $msg = $hDonate
-            _DebugOut("Click on Donate")
+            _DebugOut($sDebugAction & "Click on Donate")
             ShellExecute("https://www.paypal.me/MathiasN")
          Case $msg = $GUI_EVENT_CLOSE Or _IsPressed("1B", $hDLL)
-            _DebugOut("Close settings")
+            _DebugOut($sDebugAction & "Close settings")
             GUIDelete($sIniCategory)
       EndSelect
    WEnd
@@ -503,7 +517,7 @@ Func _CgmUpdateCheck()
 
    ; Check valid GitHub-User with repository
    If StringInStr($sReturnedCgmUpdateCompare, '"message":"Not Found"') Then
-      _DebugOut('GitHub-User has no repository "cgm-remote-monitor"')
+      _DebugOut($sDebugInfo & 'GitHub-User has no repository "cgm-remote-monitor"')
       _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Input a valid GitHub-User!" & @CRLF & "The cgm remote monitor repository must exist!")
       _Settings()
    EndIf
@@ -567,6 +581,6 @@ Func _CgmUpdateCheck()
 EndFunc
 
 Func _Exit()
-   _DebugOut("Close app")
+   _DebugOut($sDebugAction & "Close app")
    Exit
 EndFunc
