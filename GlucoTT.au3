@@ -2,12 +2,13 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.6
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.7
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <TrayConstants.au3>
+#include <FileConstants.au3>
 #include <Array.au3>
 #include <Debug.au3>
 #include "Include\CheckUpdate.au3"
@@ -28,8 +29,8 @@ HotKeySet("^!h", "_Help")
 HotKeySet("^!e", "_Exit")
 
 ; Debug
-Local $sDebugAction = "@@ Action     : "
-Local $sDebugInfo = "@@ Info       : "
+Local $sDebugAction = "@@ Debug : Action : "
+Local $sDebugInfo = "@@ Debug : Info : "
 
 ; App title
 Local $sTitle = StringRegExpReplace(@ScriptName, ".au3|.exe", "")
@@ -50,8 +51,8 @@ EndFunc
 
 ; Read settings from ini file
 Local $sFilePath = @ScriptDir & "\"
-Local $sFile = "Settings.ini"
-Local $sFileFullPath = $sFilePath & $sFile
+Local $sFileSettings = "Settings.ini"
+Local $sFileFullPath = $sFilePath & $sFileSettings
 Local $sIniCategory = "Settings"
 Local $sIniTitleNightscout = "Nightscout"
 Local $sIniDefaultNightscout = "https://<account>.herokuapp.com"
@@ -86,17 +87,19 @@ Local $iCheckboxCgmUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleCgm
 Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, $sIniDefaultGithubAccount)
 
 ; Start displaying debug environment
+Local $sFileLog = $sTitle & "_" & @YEAR & "-" & @MON & "-" & @MDAY & ".log"
+Local $iCreateFileDebug = 0
+
+; Check existing log
 If $iCheckboxLog = 1 Then
-   Local $sFile = $sTitle & "_" & @YEAR & "-" & @MON & "-" & @MDAY & ".log"
-   ; Check existing log
-   Local $iCreateFileDebug = 0
-   If Not FileExists($sFile) Then
+   If Not FileExists($sFileLog) Then
       $iCreateFileDebug = 1
-      FileOpen($sFile, 1)
+      FileOpen($sFileLog, $FO_APPEND)
+      FileClose($sFileLog)
    EndIf
-   _DebugSetup($sTitle, True, 4, $sFile, True)
+   _DebugSetup($sTitle, True, 4, $sFileLog, True)
    If $iCreateFileDebug = 1 Then
-      _DebugOut($sDebugInfo & "Created -> " & $sFile)
+      _DebugOut($sDebugInfo & "Created -> " & $sFileLog)
    EndIf
 EndIf
 If Not @Compiled Then
@@ -151,9 +154,9 @@ EndIf
 If $iCheckboxAutostart = 1 Or $iCheckboxAutostart = 4 And $iCheckboxUpdate = 1 Or $iCheckboxUpdate = 4 And $iCheckboxTextToSpeech = 1 Or $iCheckboxTextToSpeech = 4 And $iCheckboxPlayAlarm = 1 Or $iCheckboxPlayAlarm = 4 And $iCheckboxCgmUpdate = 1 Or $iCheckboxCgmUpdate = 4 Then
 Else
    _DebugOut($sDebugInfo & "Only number 1 (on) or 4 (off) for checkboxes allowed")
-   ShellExecute(@ScriptDir & "\" & $sFile)
+   ShellExecute(@ScriptDir & "\" & $sFileSettings)
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers for options allowed, please check your ini file:" & @CRLF & @CRLF & "- Checkbox number: 1 (on)" & @CRLF & "- Checkbox number: 4 (off)")
-   WinWaitClose($sFile)
+   WinWaitClose($sFileSettings)
    _Restart()
 EndIf
 
@@ -420,18 +423,18 @@ EndFunc
 
 ; Set function for buttons in TrayMenu
 Func _Nightscout()
-   _DebugOut($sDebugAction & "Open Nightscout")
+   _DebugOut($sDebugAction & "Nightscout open")
    ShellExecute($sInputDomain)
 EndFunc
 
 Func _Help()
-   _DebugOut($sDebugAction & "Open Help")
+   _DebugOut($sDebugAction & "Help open")
    ShellExecute("https://github.com/Matze1985/GlucoTT/wiki")
 EndFunc
 
 ; Set settings in GUI
 Func _Settings()
-   _DebugOut($sDebugAction & "Open Settings")
+   _DebugOut($sDebugAction & "Settings open")
    Local $hDLL = DllOpen("user32.dll")
    Local $hSave, $hDonate, $msg
    GUICreate($sIniCategory, 320, 190, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
@@ -463,7 +466,7 @@ Func _Settings()
       $msg = GUIGetMsg()
       Select
          Case $msg = $hSave Or _IsPressed("0D", $hDLL)
-            _DebugOut($sDebugAction & "Save settings")
+            _DebugOut($sDebugAction & "Settings saved")
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleNightscout, GUICtrlRead($hInputDomain))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, GUICtrlRead($hInputDesktopWidth))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, GUICtrlRead($hInputDesktopHeight))
@@ -479,7 +482,7 @@ Func _Settings()
             _DebugOut($sDebugAction & "Click on Donate")
             ShellExecute("https://www.paypal.me/MathiasN")
          Case $msg = $GUI_EVENT_CLOSE Or _IsPressed("1B", $hDLL)
-            _DebugOut($sDebugAction & "Close settings")
+            _DebugOut($sDebugAction & "Settings closed")
             GUIDelete($sIniCategory)
       EndSelect
    WEnd
@@ -581,6 +584,6 @@ Func _CgmUpdateCheck()
 EndFunc
 
 Func _Exit()
-   _DebugOut($sDebugAction & "Close app")
+   _DebugOut($sDebugAction & "App closed")
    Exit
 EndFunc
