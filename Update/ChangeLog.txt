@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.0.8 (21 January, 2019)
+	Change: Saving the log on desktop with file name "GlucoTT@Debug.log"
+
 v3.0.0.7 (14 January, 2019)
 	Change: Little log info and action change
 	Change: Log creation (Testing for writing log)

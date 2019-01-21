@@ -98,7 +98,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
       Local $procwatchPID, $aVersion, $iNewVersion, $iCurrentVersion, $iBufferSize = 0x80000, $iCRC, $iCRC32 = 0, $sData, $FileSize, $i_FileSize, $hFile
       $sINI_Data = InetRead($sUpdateINI, $InetForceReload) ; get the ini file
       If Not @error Then
-		 _DebugOut("CheckUpdate: Update file found")
+		 _DebugOut("@@ Debug : CheckUpdate -> Update file found")
          $sINI_Data = BinaryToString($sINI_Data)
          ; read the ini file in memory
          $sNewVersion = IniMemoryRead($sINI_Data, $sFileToUpdate, "version", "")
@@ -110,7 +110,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
             $iCRC = IniMemoryRead($sINI_Data, $sFileToUpdate, "CRC", 0)
             $sChangesURL = IniMemoryRead($sINI_Data, $sFileToUpdate, "changes", 0)
 
-			_DebugOut("CheckUpdate: " & $sCurrentVersion & " - New: " & $sNewVersion & "<")
+			_DebugOut("@@ Debug : CheckUpdate -> " & $sCurrentVersion & " - New: " & $sNewVersion & "<")
 
             ; convert version x.x.x.x to a number where each x can go up to 999, so the max number can be 999 999 999 999
             ; so version 1.0.1.29 will be converted to 1000001029  (001.000.001.029)
@@ -152,7 +152,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
 
                If $Return = 7 Then ;  download
                   _PathSplit($sFileToUpdate, $szDrive, $szDir, $szFName, $szExt)
-				  _DebugOut("CheckUpdate: Downloading " & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt)
+				  _DebugOut("@@ Debug : CheckUpdate -> Downloading " & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt)
 
                   InetgetProgress($sURL, @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt)
                   If @error Then
@@ -185,7 +185,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                                  FileDelete(@ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt) ; delete the file because it may be corrupt
                            Return SetError(7, 0, 0)
                         Else
-						   _DebugOut("CheckUpdate: CRC Checksum successful " & Hex($iCRC32, 8))
+						   _DebugOut("@@ Debug : CheckUpdate -> CRC Checksum successful " & Hex($iCRC32, 8))
                            ; download successful, exit this program just after starting the temporary batch file that does following:
                            ; 1. wait for a few seconds to enable to current script to Exit (using ping trick)
                            ; 2. delete old file
@@ -233,19 +233,19 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                      EndIf
                   EndIf
                Else
-				  _DebugOut("CheckUpdate: User refused Update")
+				  _DebugOut("@@ Debug : CheckUpdate -> User refused Update")
                   Return SetError(2, 0, 0)
                EndIf
             Else
-			    _DebugOut("CheckUpdate: No newer version available")
+			    _DebugOut("@@ Debug : CheckUpdate -> No newer version available")
                Return SetError(1, 0, 0)
             EndIf
          Else
-			 _DebugOut("CheckUpdate: Version info not available in Update file")
+			 _DebugOut("@@ Debug : CheckUpdate -> Version info not available in Update file")
             Return SetError(4, 0, 0)
          EndIf
 	 Else
-		 _DebugOut("CheckUpdate: Update file not available")
+		 _DebugOut("@@ Debug : CheckUpdate -> Update file not available")
          Return SetError(3, 0, 0)
       EndIf
 
@@ -391,7 +391,7 @@ Func InetgetProgress($sURL, $sFilename)
    _PathSplit($sURL, $szDrive, $szDir, $szFName, $szExt)
    $iSize = InetGetSize($sURL)
    $iTotalSize = Round($iSize / 1024)
-   _DebugOut("CheckUpdate: $szFName & $szExt: " & $szFName & $szExt & " $sURL: " & $sURL)
+   _DebugOut("@@ Debug : CheckUpdate -> $szFName & $szExt: " & $szFName & $szExt & " $sURL: " & $sURL)
    $hDownload = InetGet($sURL, $sFilename, 16, 1) ; from InetConstants.au3:  $INET_FORCEBYPASS (16) = By-pass forcing the connection online, $INET_DOWNLOADBACKGROUND (1) = Background download
    ProgressOn("Download " & $szFName & $szExt, "Download progress")
    Do

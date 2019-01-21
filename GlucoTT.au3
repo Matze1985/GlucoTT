@@ -2,13 +2,12 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.7
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.8
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <TrayConstants.au3>
-#include <FileConstants.au3>
 #include <Array.au3>
 #include <Debug.au3>
 #include "Include\CheckUpdate.au3"
@@ -28,19 +27,8 @@ HotKeySet("^!s", "_Settings")
 HotKeySet("^!h", "_Help")
 HotKeySet("^!e", "_Exit")
 
-; Debug
-Local $sDebugAction = "@@ Debug : Action : "
-Local $sDebugInfo = "@@ Debug : Info : "
-
 ; App title
 Local $sTitle = StringRegExpReplace(@ScriptName, ".au3|.exe", "")
-
-; Check for another instance of this program
-If _Singleton($sTitle, 1) = 0 Then
-   _DebugOut($sDebugInfo & "Another instance is already running")
-   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Another instance of this program is already running.")
-   Exit
-EndIf
 
 ; Check internet connection on Start/Loop - Return 1 for ON | Return 0 for OFF
 Func _CheckConnection()
@@ -87,23 +75,25 @@ Local $iCheckboxCgmUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleCgm
 Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, $sIniDefaultGithubAccount)
 
 ; Start displaying debug environment
-Local $sFileLog = $sTitle & "_" & @YEAR & "-" & @MON & "-" & @MDAY & ".log"
-Local $iCreateFileDebug = 0
+Local $sDebugAction = "@@ Debug : Action -> "
+Local $sDebugInfo = "@@ Debug : Info -> "
+Local $sFileLog = $sTitle & "@Debug.log"
+Local $sFileLogFullPath = @DesktopDir & "\" & $sFileLog
 
 ; Check existing log
 If $iCheckboxLog = 1 Then
-   If Not FileExists($sFileLog) Then
-      $iCreateFileDebug = 1
-      FileOpen($sFileLog, $FO_APPEND)
-      FileClose($sFileLog)
-   EndIf
-   _DebugSetup($sTitle, True, 4, $sFileLog, True)
-   If $iCreateFileDebug = 1 Then
-      _DebugOut($sDebugInfo & "Created -> " & $sFileLog)
-   EndIf
+   _DebugSetup($sTitle, True, 4, $sFileLogFullPath, True)
+   _DebugOut($sDebugInfo & "Writing in log -> " & $sFileLog)
 EndIf
 If Not @Compiled Then
    _DebugSetup($sTitle, True)
+EndIf
+
+; Check for another instance of this program
+If _Singleton($sTitle, 1) = 0 Then
+   _DebugOut($sDebugInfo & "Another instance is already running")
+   _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Another instance of this program is already running.")
+   Exit
 EndIf
 
 ; Check empty input for Nightscout
@@ -380,6 +370,12 @@ Func _Tooltip()
          EndIf
       EndIf
       Sleep($i_MsWait)
+      ; Remove temporary files after 60 seconds
+      Local $sFileProc = "proc.cmd"
+      If FileExists($sFileProc) Then
+         _DebugOut($sDebugInfo & 'Remove temp. file "' & $sFileProc & '"')
+         FileDelete($sFileProc)
+      EndIf
       ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
       If $i_MsWait = 60000 Then
          ; Check for app updates
