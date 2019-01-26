@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.8
+   #AutoIt3Wrapper_Res_Fileversion=3.0.0.9
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -83,7 +83,7 @@ Local $sFileLogFullPath = @DesktopDir & "\" & $sFileLog
 ; Check existing log
 If $iCheckboxLog = 1 Then
    _DebugSetup($sTitle, True, 4, $sFileLogFullPath, True)
-   _DebugOut($sDebugInfo & "Writing in log -> " & $sFileLog)
+   _DebugOut($sDebugInfo & "Writing in log -> " & $sFileLogFullPath)
 EndIf
 If Not @Compiled Then
    _DebugSetup($sTitle, True)
@@ -216,24 +216,32 @@ Func _Tooltip()
    _DebugReportVar("$iMinInterval", $iMinInterval)
 
    ; Calculate ms for sleep with interval logic
-   Local $i_MsWait = Int(Round(60000 * $i_fZeroMin, 0))
+   Local $i_MsWaitDiff = Int(Round(60000 * $i_fZeroMin, 0))
+   Local $i_MsWait = $i_MsWaitDiff
    Local $fMinIntervalCheck = Number(0.1) ; Wait 60000 x 0.1 = max. 6000 ms
-   _DebugReportVar("$fMinIntervalCheck", $iMinInterval)
+   _DebugReportVar("$fMinIntervalCheck", $fMinIntervalCheck)
 
-   ; Check the first three intervals
-   If $iMin == $iMinInterval And $fMin <= $iMinInterval + $fMinIntervalCheck Then
+   ; Calculate all intervals
+   Local $iIntervalRound
+   Local $fIntervalRound = Number($iMin / $iMinInterval)
+   _DebugReportVar("$fIntervalRound", $fIntervalRound)
+   If StringRegExp($fIntervalRound, '(.)') Then
+      $iIntervalRound = Int($fIntervalRound + 1)
+   Else
+      $iIntervalRound = Int($iMinInterval)
+   EndIf
+   _DebugReportVar("$iIntervalRound", $iIntervalRound)
+
+   ; Check new glucose updates
+   If $iMin == $iIntervalRound * $iMinInterval - $iMinInterval And $fMin <= $iIntervalRound * $iMinInterval - $iMinInterval + $fMinIntervalCheck Then
       $i_MsWait = 1000
    EndIf
-   If $iMin == 2 * $iMinInterval And $fMin <= 2 * $iMinInterval + $fMinIntervalCheck Then
-      $i_MsWait = 1000
-   EndIf
-   If $iMin == 3 * $iMinInterval And $fMin <= 3 * $iMinInterval + $fMinIntervalCheck Then
-      $i_MsWait = 1000
+
+   ; After 0 min read normal wait
+   If $iMin == 0 Then
+      $i_MsWait = $i_MsWaitDiff
    EndIf
    _DebugReportVar("$i_MsWait", $i_MsWait)
-
-   ; bMod for alarm and speech - modulus operation
-   Local $bMod = Mod($iDate, $iServerTimeEpoch)
 
    ; Check Nightscout version
    Global $sNightscoutVersion = StringRegExpReplace($sReturnedPageJsonStatus, '.*"version":("|)([^"]+)("|),.*', '\2')
@@ -328,7 +336,7 @@ Func _Tooltip()
       $iAlarm = 2 ;=Warning icon
       ; Play alarm from Nightscout (alarm.mp3)
       If $iCheckboxPlayAlarm = 1 Then
-         If $iMin == 0 And $bMod = True Then
+         If $iMin == 0 Then
             SoundPlay($sInputDomain & "/audio/alarm.mp3", 0)
          EndIf
       EndIf
@@ -357,35 +365,33 @@ Func _Tooltip()
    Global $sUpdateWindowTitle = "Nightscout-Update"
 
    ; Sleep
-   If $bMod = True Then
-      ; Check upload to Nightscout
-      If $iDate == $iLastDate And StringRegExp($iDate & $iLastDate, '([0-9]{13})') Then
-         _DebugOut($sDebugInfo & "More than one upload method selected")
-         _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
+   ; Check upload to Nightscout
+   If $iDate == $iLastDate And StringRegExp($iDate & $iLastDate, '([0-9]{13})') Then
+      _DebugOut($sDebugInfo & "More than one upload method selected")
+      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
+   EndIf
+   If $iCheckboxTextToSpeech = 1 Then
+      ; Read every zero minutes
+      If $iMin == 0 Then
+         _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
       EndIf
-      If $iCheckboxTextToSpeech = 1 Then
-         ; Read every zero minutes
-         If $iMin == 0 And $bMod = True Then
-            _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
-         EndIf
+   EndIf
+   Sleep($i_MsWait)
+;~       ; Remove temporary files after 60 seconds
+;~       Local $sFileProc = "proc.cmd"
+;~       If FileExists($sFileProc) Then
+;~          _DebugOut($sDebugInfo & 'Remove temp. file "' & $sFileProc & '"')
+;~          FileDelete($sFileProc)
+;~       EndIf
+   ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
+   If $i_MsWait = 60000 Then
+      ; Check for app updates
+      If $iCheckboxUpdate = 1 Then
+         CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
       EndIf
-      Sleep($i_MsWait)
-      ; Remove temporary files after 60 seconds
-      Local $sFileProc = "proc.cmd"
-      If FileExists($sFileProc) Then
-         _DebugOut($sDebugInfo & 'Remove temp. file "' & $sFileProc & '"')
-         FileDelete($sFileProc)
-      EndIf
-      ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
-      If $i_MsWait = 60000 Then
-         ; Check for app updates
-         If $iCheckboxUpdate = 1 Then
-            CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
-         EndIf
-         If $iCheckboxCgmUpdate = 1 Then
-            If Not WinExists($sUpdateWindowTitle) Then
-               _CgmUpdateCheck()
-            EndIf
+      If $iCheckboxCgmUpdate = 1 Then
+         If Not WinExists($sUpdateWindowTitle) Then
+            _CgmUpdateCheck()
          EndIf
       EndIf
    EndIf
@@ -419,18 +425,23 @@ EndFunc
 
 ; Set function for buttons in TrayMenu
 Func _Nightscout()
-   _DebugOut($sDebugAction & "Nightscout open")
+   _DebugOut($sDebugAction & "TrayMenu -> Nightscout")
    ShellExecute($sInputDomain)
 EndFunc
 
 Func _Help()
-   _DebugOut($sDebugAction & "Help open")
+   _DebugOut($sDebugAction & "TrayMenu -> Help")
    ShellExecute("https://github.com/Matze1985/GlucoTT/wiki")
+EndFunc
+
+Func _Exit()
+   _DebugOut($sDebugAction & "TrayMenu -> Close app")
+   Exit
 EndFunc
 
 ; Set settings in GUI
 Func _Settings()
-   _DebugOut($sDebugAction & "Settings open")
+   _DebugOut($sDebugAction & "Settings -> Open")
    Local $hDLL = DllOpen("user32.dll")
    Local $hSave, $hDonate, $msg
    GUICreate($sIniCategory, 320, 190, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
@@ -462,7 +473,7 @@ Func _Settings()
       $msg = GUIGetMsg()
       Select
          Case $msg = $hSave Or _IsPressed("0D", $hDLL)
-            _DebugOut($sDebugAction & "Settings saved")
+            _DebugOut($sDebugAction & "Settings -> Save")
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleNightscout, GUICtrlRead($hInputDomain))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, GUICtrlRead($hInputDesktopWidth))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, GUICtrlRead($hInputDesktopHeight))
@@ -475,10 +486,10 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, GUICtrlRead($hInputGithubAccount))
             _Restart()
          Case $msg = $hDonate
-            _DebugOut($sDebugAction & "Click on Donate")
+            _DebugOut($sDebugAction & "Settings -> Donate")
             ShellExecute("https://www.paypal.me/MathiasN")
          Case $msg = $GUI_EVENT_CLOSE Or _IsPressed("1B", $hDLL)
-            _DebugOut($sDebugAction & "Settings closed")
+            _DebugOut($sDebugAction & "Settings -> Close")
             GUIDelete($sIniCategory)
       EndSelect
    WEnd
@@ -577,9 +588,4 @@ Func _CgmUpdateCheck()
    _DebugReportVar("$sReturnedCgmUpdateCompare", $sReturnedCgmUpdateCompare)
    _DebugReportVar("$iCheckMerge", $iCheckMerge)
    _WinHttpCloseHandle($hConnectCgmUpdateCompare)
-EndFunc
-
-Func _Exit()
-   _DebugOut($sDebugAction & "App closed")
-   Exit
 EndFunc

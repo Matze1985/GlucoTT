@@ -1,6 +1,11 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.0.9 (26 January, 2019)
+	Change: Read every interval of glucose instead of 3 times
+	Change: Change ping times for update process by the app
+	Change: Remove modulus operation
+
 v3.0.0.8 (21 January, 2019)
 	Change: Saving the log on desktop with file name "GlucoTT@Debug.log"
 
@@ -9,7 +14,7 @@ v3.0.0.7 (14 January, 2019)
 	Change: Log creation (Testing for writing log)
 
 v3.0.0.6 (11 January, 2019)
-	Add: Added log info and action 
+	Add: Added log info and action
 	Change: Check existing log for better working file creation
 
 v3.0.0.5 (10 January, 2019)
@@ -21,7 +26,7 @@ v3.0.0.4 (09 January, 2019)
 v3.0.0.3 (09 January, 2019)
 	Change: Change debug log name (@YEAR & @MON & @MDAY)
 	Change: Bugfixes (Change variable name)
-	Change: Exact check for the first three intervals for glucose updates 
+	Change: Exact check for the first three intervals for glucose updates
 	Change: Check app updates every sixty minutes
 
 v3.0.0.2 (06 January, 2019)
@@ -45,7 +50,8 @@ v2.9.9.8 (05 December, 2018)
 	Change: Change API for read glucose from entries.json
 
 v2.9.9.7 (11 November, 2018)
-	Add: Update-Helper for Azure and Heroku
+	Add: Update-Helper for Azure and Heroku
+
 	Add: Added check for upper case in url
 	Change: Function _CgmUpdateCheck()
 	Change: Changes for settings file
@@ -65,7 +71,7 @@ v2.9.8.0 (25 October, 2018)
 
 v2.9.5.0 (24 October, 2018)
 	Change: Enhancement regex for status update on GitHub
-	Change: Enhancement for CheckUpdate.au3 
+	Change: Enhancement for CheckUpdate.au3
 
 v2.9.0.0 (17 October, 2018)
 	Change: Enhancement for status update on GitHub
@@ -99,7 +105,7 @@ v2.5.5.0 (18 June, 2018)
 v2.5.0.0 (16 June, 2018)
 	Change: Bugfixes
 	Change: Fix for sorting error (for reading glucose)
-	Change: Alarm options (BG_TARGET_BOTTOM, BG_TARGET_TOP and BG_HIGH, BG_LOW) ** Read in wiki [02] ** 
+	Change: Alarm options (BG_TARGET_BOTTOM, BG_TARGET_TOP and BG_HIGH, BG_LOW) ** Read in wiki [02] **
 
 v2.3.6.0 (08 May, 2018)
 	Add: Added regex tooltip support for Dexcom G5
@@ -117,21 +123,21 @@ v2.3.0.0 (21 April, 2018)
 v2.2.5.0 (09 April, 2018)
 	Added: Text-To-Speech option added for reading glucose values from Open Source UDF (http://www.autoitscript.com/forum/index.php?showtopic=173934)
 	Change: Cleanup code
-	
+
 v2.2.0.0 (07 April, 2018)
 	Added: Options added in gui settings for "Autostart" and "Update"
 	Added: UDF for Autostart from GlucoTT (https://www.autoitscript.com/forum/topic/124508-_startup-create-startup-entries-in-the-startup-folder-or-registry/)
 	Added: By setting none alarm is no icon in the tooltip available
 	Change: Cleanup code for for mmol (glucose, delta)
 	Change: Cleanup code general
-	
+
 v2.1.0.0 (24 March, 2018)
 	Change: Change calculation for mg/dl to mmol
 	Add: Help in TrayMenu
 	Change: Cleanup code
 	Change: Sleep for reading interval
 	Change: Last reading in minutes, showing in tooltip, begin from 0 minutes
-	
+
 v2.0.0.0 (20 March, 2018)
 	Add: Better automatic read glucose interval
 	Add: Read application settings from Nightscout
@@ -140,21 +146,21 @@ v2.0.0.0 (20 March, 2018)
 
 v1.6.1.0 (11 March, 2018)
 	Remove: Clock symbol removed from the tooltip for better compatibility
-	
+
 v1.6.0.0 (10 March, 2018)
 	Added: Last reading in minutes, showing in tooltip
-	
+
 v1.5.0.0 (01 March, 2018)
 	Added: User-friendly settings (Open file after error, after closing, the app restarts)
 	Added: Entry "Settings" in TrayMenu
-	
+
 v1.4.5.0 (25 February, 2018)
-	Change: Changed regex domain check 
-	
+	Change: Changed regex domain check
+
 v1.4.4.0 (24 February, 2018)
     Added: Better error handling for tooltip
 	Change: Global to local $sPage
-	
+
 v1.4.3.0 (06 February, 2018)
     Change: Cleaner code for a final release version.
     Added: Better tooltip logic
@@ -162,7 +168,7 @@ v1.4.3.0 (06 February, 2018)
     Change: Cleaner code
 
 v1.3.0.0 (03 February, 2018)
-    Added: Delta for glucose 
+    Added: Delta for glucose
     Change: Remove title in tooltip and add current glucose and trend
     Change: Fix global/local variables logic
 

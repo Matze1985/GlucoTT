@@ -61,7 +61,8 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
    ; 					Note: In case of error, just continue with current script...
    ;
    ; Author ........: GreenCan
-   ; Modified.......: 		06.01.2019 - Matze1985 - Change report for debug
+   ; Modified.......: 		23.01.2019 - Matze1985 - Change ping times for update script
+   ;						06.01.2019 - Matze1985 - Change report for debug
    ;						24.10.2018 - Matze1985 - Adding wait for starting downloaded file
    ;						14.01.2018 - Matze1985 - Change "backup old file" to "remove old file"
    ; Remarks .......: 		The script version has format x.x.x.x !
@@ -197,11 +198,11 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
 
                            $UpdateScript = '@ECHO ON' & _
                                  @CRLF & _
-                                 'ping 127.0.0.1 -n 5 -w 5000' & _
+                                 'PING 127.0.0.1 -n 5 -w 8000' & _
                                  @CRLF & _
                                  'DEL /F "' & @ScriptDir & '\' & $szFName & $szExt & _
                                  @CRLF & _
-                                 'rename "' & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt & '" ' & $szFName & $szExt & _
+                                 'RENAME "' & @ScriptDir & "\" & $szFName & "_" & $sNewVersion & $szExt & '" ' & $szFName & $szExt & _
                                  @CRLF & _
                                  'SET File="' & $szFName & $szExt & '"' & _
                                  @CRLF & _
@@ -209,7 +210,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                                  @CRLF & _
                                  'IF EXIST %File% GOTO FoundFile' & _
                                  @CRLF & _
-                                 'ping 127.0.0.1 -n 1 > nul' & _
+                                 'PING 127.0.0.1 -n 3 > nul' & _
                                  @CRLF & _
                                  'GOTO CheckFile' & _
                                  @CRLF & _
@@ -217,7 +218,7 @@ Global $_CRC32_CodeBuffer, $_CRC32_CodeBufferMemory ; CRC checksum
                                  @CRLF & _
                                  'ECHO Found: %File%' & _
                                  @CRLF & _
-                                 'start ' & $szFName & $szExt & _
+                                 'START ' & $szFName & $szExt & _
                                  @CRLF & _
                                  'DEL /F "' & @ScriptDir & '\proc.cmd"' & _
                                  @CRLF
