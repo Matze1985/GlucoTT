@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.1.0 (07 February, 2019)
+	Change: Bugfix for "$i_fGlucoseResult" < "$i_fLastGlucoseResult"
+
 v3.0.0.9 (26 January, 2019)
 	Change: Read every interval of glucose instead of 3 times
 	Change: Change ping times for update process by the app

@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.0.9
+   #AutoIt3Wrapper_Res_Fileversion=3.0.1.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -230,6 +230,9 @@ Func _Tooltip()
    Else
       $iIntervalRound = Int($iMinInterval)
    EndIf
+   If StringRegExp($fIntervalRound, '(#INF)') Then
+      $iIntervalRound = Int(2)
+   EndIf
    _DebugReportVar("$iIntervalRound", $iIntervalRound)
 
    ; Check new glucose updates
@@ -321,6 +324,12 @@ Func _Tooltip()
 
    ; Calculate delta
    Local $fDeltaTmp = Number($i_fGlucoseResult - $i_fLastGlucoseResult, 3) ; 3=the result is double
+   If $i_fGlucoseResult < $i_fLastGlucoseResult Then
+      If StringInStr($sDirection, "FortyFiveUp") Or StringInStr($sDirection, "SingleUp") Or StringInStr($sDirection, "DoubleUp") Then
+         $fDeltaTmp = Number(StringReplace($fDeltaTmp, "-", ""), 3) ; 3=the result is double
+      EndIf
+   EndIf
+
    Local $s_fDelta = Round($fDeltaTmp, 1) ; Round 0.0
    If $s_fDelta > 0 Then
       $s_fDelta = "+" & $s_fDelta
