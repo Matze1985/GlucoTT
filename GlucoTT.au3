@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.1.0
+   #AutoIt3Wrapper_Res_Fileversion=3.0.2.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -228,7 +228,7 @@ Func _Tooltip()
    If StringRegExp($fIntervalRound, '(.)') Then
       $iIntervalRound = Int($fIntervalRound + 1)
    Else
-      $iIntervalRound = Int($iMinInterval)
+      $iIntervalRound = $iMinInterval
    EndIf
    If StringRegExp($fIntervalRound, '(#INF)') Then
       $iIntervalRound = Int(2)
@@ -382,7 +382,11 @@ Func _Tooltip()
    If $iCheckboxTextToSpeech = 1 Then
       ; Read every zero minutes
       If $iMin == 0 Then
-         _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
+         If StringInStr($sGlucoseTextToSpeech, "-") Then
+            ; Speak no negative values
+         Else
+            _SpeechObject_Say($oSapi, $sGlucoseTextToSpeech)
+         EndIf
       EndIf
    EndIf
    Sleep($i_MsWait)

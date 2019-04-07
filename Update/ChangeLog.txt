@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.2.0 (07 April, 2019)
+	Change: Speak no negative values (For example with connection problems)
+
 v3.0.1.0 (07 February, 2019)
 	Change: Bugfix for "$i_fGlucoseResult" < "$i_fLastGlucoseResult"
 
