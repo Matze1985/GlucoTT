@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.2.0
+   #AutoIt3Wrapper_Res_Fileversion=3.0.3.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -520,7 +520,7 @@ Func _CgmUpdateCheck()
    Local $sUpdateWindowMsg = "Update on GitHub available!"
    Local $sWndGithubTitle = "cgm-remote-monitor"
    Local $sUpdateWindowMsgHelp = "Help for update on GitHub!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & "5. Close this window, when finished!"
-   Local $iCheckVersionDev = StringRegExp($sNightscoutVersion, "(dev)")
+   Local $iCheckVersionDev = StringRegExp($sNightscoutVersion, "(dev|rc)")
    _DebugReportVar("$iCheckVersionDev", $iCheckVersionDev)
    Local $iCheckVersionRelease = StringRegExp($sNightscoutVersion, "(release)")
    _DebugReportVar("$iCheckVersionRelease", $iCheckVersionRelease)

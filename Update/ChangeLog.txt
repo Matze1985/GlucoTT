@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.0.3.0 (13 April, 2019)
+	Add: Added "rc" for search update dev ($iCheckVersionDev)
+
 v3.0.2.0 (07 April, 2019)
 	Change: Speak no negative values (For example with connection problems)
 
