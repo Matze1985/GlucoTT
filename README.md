@@ -1,7 +1,9 @@
 # GlucoTT
 A simple discrete glucose tooltip for Nightscout under Windows
 
+## Icon
 ![Logo](https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Icon.ico)
+* Created with <a href="http://romannurik.github.io/AndroidAssetStudio/icons-launcher.html" target="_blank">Android Asset Studio</a>
 
 ![Example 1](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_1.PNG) ![Example 2](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_2.PNG) ![Example 3](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_3.PNG) 
 
