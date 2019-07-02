@@ -1,11 +1,13 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
-   #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.3.0
+   #AutoIt3Wrapper_Res_Description=GlucoTT
+   #AutoIt3Wrapper_Res_Fileversion=3.0.9.9
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
+;~    #AutoIt3Wrapper_Run_Au3Stripper=y
+   #Au3Stripper_Parameters=/mo /SCI=1
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <TrayConstants.au3>
 #include <Array.au3>
@@ -63,6 +65,8 @@ Local $iIniDefaultCheckboxTextToSpeech = 4
 Local $iIniDefaultCheckboxLog = 4
 Local $sIniTitlePlayAlarm = "Play alarm"
 Local $iIniDefaultCheckboxPlayAlarm = 4
+Local $sIniTitleTrayTip = "TrayTip"
+Local $iIniDefaultCheckboxTrayTip = 4
 Local $sInputDomain = IniRead($sFileFullPath, $sIniCategory, $sIniTitleNightscout, $sIniDefaultNightscout)
 Local $sInputDesktopWidth = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, $iIniDefaultDesktopWidth)
 Local $sInputDesktophHeight = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, $iIniDefaultDesktopHeight)
@@ -71,6 +75,7 @@ Local $iCheckboxUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleUpdate
 Local $iCheckboxTextToSpeech = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, $iIniDefaultCheckboxTextToSpeech)
 Local $iCheckboxLog = IniRead($sFileFullPath, $sIniCategory, $sIniTitleLog, $iIniDefaultCheckboxLog)
 Local $iCheckboxPlayAlarm = IniRead($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, $iIniDefaultCheckboxPlayAlarm)
+Local $iCheckboxTrayTip = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTrayTip, $iIniDefaultCheckboxTrayTip)
 Local $iCheckboxCgmUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleCgmUpdate, $iIniDefaultCheckboxCgmUpdate)
 Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, $sIniDefaultGithubAccount)
 
@@ -141,7 +146,8 @@ If $iCheckNumbers = 0 Then
 EndIf
 
 ; Check checkbox options
-If $iCheckboxAutostart = 1 Or $iCheckboxAutostart = 4 And $iCheckboxUpdate = 1 Or $iCheckboxUpdate = 4 And $iCheckboxTextToSpeech = 1 Or $iCheckboxTextToSpeech = 4 And $iCheckboxPlayAlarm = 1 Or $iCheckboxPlayAlarm = 4 And $iCheckboxCgmUpdate = 1 Or $iCheckboxCgmUpdate = 4 Then
+If $iCheckboxAutostart = 1 Or $iCheckboxAutostart = 4 And $iCheckboxUpdate = 1 Or $iCheckboxUpdate = 4 And $iCheckboxTextToSpeech = 1 Or $iCheckboxTextToSpeech = 4 And $iCheckboxPlayAlarm = 1 Or $iCheckboxPlayAlarm = 4 And $iCheckboxTrayTip = 1 Or $iCheckboxTrayTip = 4 And $iCheckboxCgmUpdate = 1 Or $iCheckboxCgmUpdate = 4 Then
+   _DebugOut($sDebugInfo & "Checkbox options ok")
 Else
    _DebugOut($sDebugInfo & "Only number 1 (on) or 4 (off) for checkboxes allowed")
    ShellExecute(@ScriptDir & "\" & $sFileSettings)
@@ -254,6 +260,10 @@ Func _Tooltip()
    Local $sStatus = StringRegExpReplace($sReturnedPageJsonStatus, '.*"status":("|)([^"]+)("|),.*', '\2')
    _DebugReportVar("$sStatus", $sStatus)
 
+   ; Name for nightscout
+   Local $sName = StringRegExpReplace($sReturnedPageJsonStatus, '.*"name":("|)([^"]+)("|),.*', '\2')
+   _DebugReportVar("$sName", $sName)
+
    ; Settings check for json: units
    Local $sReadOption = StringRegExpReplace($sReturnedPageJsonStatus, '.*"units":("|)([^"]+)("|),.*', '\2')
    _DebugReportVar("$sReadOption", $sReadOption)
@@ -361,11 +371,22 @@ Func _Tooltip()
    ; Check values for mmol or mg/dl
    Local $iCheckReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
 
-   ; Tooltip
-   If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
-      ToolTip($sWrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $sWrongMsg, 3, 2)
+   If $iCheckboxTrayTip == 1 Then
+      If $iMin == 0 Or StringRegExp($iMin, $iMinInterval + 1 & '|' & StringTrimRight($iMinInterval * 2 + 1, 1) & '\b.*$') Then
+         _DebugOut($sDebugInfo & "Display -> TrayTip")
+         If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
+            TrayTip($sName, $sWrongMsg, 10, $iAlarm + $TIP_NOSOUND)
+         Else
+            TrayTip($sName, $i_fGlucoseResult & " " & $sReadOption & "  •  " & $sTrend & "  •  " & $s_fDelta & "  •  " & $iMin & " min", 10, $iAlarm + $TIP_NOSOUND)
+         EndIf
+      EndIf
    Else
-      ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
+      _DebugOut($sDebugInfo & "Display -> ToolTip")
+      If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
+         ToolTip($sWrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $sWrongMsg, 3, 2)
+      Else
+         ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
+      EndIf
    EndIf
 
    ; Check TTS option and locals, globals
@@ -475,7 +496,9 @@ Func _Settings()
    GUICtrlSetState($hCheckboxLog, $iCheckboxLog)
    Local $hCheckboxPlayAlarm = GUICtrlCreateCheckbox($sIniTitlePlayAlarm, 230, 60, 80, 20)
    GUICtrlSetState($hCheckboxPlayAlarm, $iCheckboxPlayAlarm)
-   $hDonate = GUICtrlCreateButton("Donate", 230, 80, 80, 40)
+   Local $hCheckboxTrayTip = GUICtrlCreateCheckbox($sIniTitleTrayTip, 230, 80, 80, 20)
+   GUICtrlSetState($hCheckboxTrayTip, $iCheckboxTrayTip)
+   $hDonate = GUICtrlCreateButton("Donate", 230, 100, 80, 35)
    Local $hCheckboxCgmUpdate = GUICtrlCreateCheckbox($sIniTitleCgmUpdate, 10, 120, 145, 20)
    GUICtrlSetState($hCheckboxCgmUpdate, $iCheckboxCgmUpdate)
    Local $hInputGithubAccount = GUICtrlCreateInput($sInputGithubAccount, 10, 140, 300, 20)
@@ -495,6 +518,7 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, GUICtrlRead($hCheckboxTextToSpeech))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleLog, GUICtrlRead($hCheckboxLog))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, GUICtrlRead($hCheckboxPlayAlarm))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTrayTip, GUICtrlRead($hCheckboxTrayTip))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleCgmUpdate, GUICtrlRead($hCheckboxCgmUpdate))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, GUICtrlRead($hInputGithubAccount))
             _Restart()
