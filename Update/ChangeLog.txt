@@ -1,6 +1,13 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.1.0.0 (04 July, 2019)
+	Change: Fix mute bug
+	Change: Update glucose for traytip
+
+v3.0.9.9 (02 July, 2019)
+	Add: Added TrayTip option
+
 v3.0.3.0 (13 April, 2019)
 	Add: Added "rc" for search update dev ($iCheckVersionDev)
 

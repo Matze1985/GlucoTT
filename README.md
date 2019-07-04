@@ -1,12 +1,17 @@
 # GlucoTT
-A simple discrete glucose tooltip for Nightscout under Windows
+A simple discrete glucose tooltip/traytip for Nightscout under Windows
 
 ## Icon
 ![Logo](https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Icon.ico)
 * Created with <a href="http://romannurik.github.io/AndroidAssetStudio/icons-launcher.html" target="_blank">Android Asset Studio</a>
 
-![Example 1](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_1.PNG) ![Example 2](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_2.PNG) ![Example 3](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_3.PNG) 
+## Tooltip
+![Example 1](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_1.PNG) ![Example 2](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_2.PNG) ![Example 3](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_3.PNG)
 
+## TrayTip
+![Example 7](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_7.PNG)![Example 8](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_8.PNG)
+
+## Settings
 ![Example 4](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_4.PNG)
 
 ## Include
@@ -17,6 +22,7 @@ A simple discrete glucose tooltip for Nightscout under Windows
 * [WinHttp.au3](http://www.autoitscript.com/forum/index.php?showtopic=84133) by trancexx, ProgAndy
 * [WinHttpConstants.au3](http://www.autoitscript.com/forum/index.php?showtopic=84133) by trancexx
 * [_Startup.au3](https://www.autoitscript.com/forum/topic/124508-_startup-create-startup-entries-in-the-startup-folder-or-registry/) by guinness
+* [_AudioEndpointVolume.au3](https://www.autoitscript.com/forum/topic/84834-control-vista-master-volume/) by Erik Pilsits
 
 When you find errors, please write a ticket!
 

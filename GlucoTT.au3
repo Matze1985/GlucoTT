@@ -1,11 +1,13 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
-   #AutoIt3Wrapper_Res_Description=A simple discrete glucose tooltip for Nightscout under Windows
-   #AutoIt3Wrapper_Res_Fileversion=3.0.3.0
+   #AutoIt3Wrapper_Res_Description=GlucoTT
+   #AutoIt3Wrapper_Res_Fileversion=3.1.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
+;~    #AutoIt3Wrapper_Run_Au3Stripper=y
+   #Au3Stripper_Parameters=/mo /SCI=1
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #include <TrayConstants.au3>
 #include <Array.au3>
@@ -15,6 +17,7 @@
 #include "Include\ExtMsgBox.au3"
 #include "Include\_Startup.au3"
 #include "Include\TTS UDF.au3"
+#include "Include\_AudioEndpointVolume.au3"
 
 Opt("TrayMenuMode", 3) ; The default tray menu items will not be shown and items are not checked when selected. These are options 1 and 2 for TrayMenuMode.
 Opt("TrayOnEventMode", 1) ; Enable TrayOnEventMode.
@@ -63,6 +66,8 @@ Local $iIniDefaultCheckboxTextToSpeech = 4
 Local $iIniDefaultCheckboxLog = 4
 Local $sIniTitlePlayAlarm = "Play alarm"
 Local $iIniDefaultCheckboxPlayAlarm = 4
+Local $sIniTitleTrayTip = "TrayTip"
+Local $iIniDefaultCheckboxTrayTip = 4
 Local $sInputDomain = IniRead($sFileFullPath, $sIniCategory, $sIniTitleNightscout, $sIniDefaultNightscout)
 Local $sInputDesktopWidth = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, $iIniDefaultDesktopWidth)
 Local $sInputDesktophHeight = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, $iIniDefaultDesktopHeight)
@@ -71,6 +76,7 @@ Local $iCheckboxUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleUpdate
 Local $iCheckboxTextToSpeech = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, $iIniDefaultCheckboxTextToSpeech)
 Local $iCheckboxLog = IniRead($sFileFullPath, $sIniCategory, $sIniTitleLog, $iIniDefaultCheckboxLog)
 Local $iCheckboxPlayAlarm = IniRead($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, $iIniDefaultCheckboxPlayAlarm)
+Local $iCheckboxTrayTip = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTrayTip, $iIniDefaultCheckboxTrayTip)
 Local $iCheckboxCgmUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleCgmUpdate, $iIniDefaultCheckboxCgmUpdate)
 Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, $sIniDefaultGithubAccount)
 
@@ -81,7 +87,7 @@ Local $sFileLog = $sTitle & "@Debug.log"
 Local $sFileLogFullPath = @DesktopDir & "\" & $sFileLog
 
 ; Check existing log
-If $iCheckboxLog = 1 Then
+If $iCheckboxLog == 1 Then
    _DebugSetup($sTitle, True, 4, $sFileLogFullPath, True)
    _DebugOut($sDebugInfo & "Writing in log -> " & $sFileLogFullPath)
 EndIf
@@ -119,7 +125,7 @@ EndIf
 
 ; Check Domain settings
 Local $iCheckDomain = StringRegExp($sInputDomain, '^(?:https?:\/\/)?(?:www\.)?([^\s\:\/\?\[\]\@\!\$\&\"\(\)\*\+\,\;\=\<\>\#\%\''\"{"\}\|\\\^\`]{1,63}\.(?:[a-z]{2,}))(?:\/|:[0-9]{1,7}|\?|\&|\s|$)\/?')
-If $iCheckDomain = 0 Then
+If $iCheckDomain == 0 Then
    _DebugOut($sDebugInfo & "Wrong input for domain")
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong URL for Nightscout set!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://account.azurewebsites.net")
    _Settings()
@@ -134,14 +140,15 @@ EndIf
 
 ; Check desktop width and height settings
 Local $iCheckNumbers = StringRegExp($sInputDesktopWidth & $sInputDesktophHeight, '^[0-9]+$')
-If $iCheckNumbers = 0 Then
+If $iCheckNumbers == 0 Then
    _DebugOut($sDebugInfo & "Only numbers allowed for Desktop width/height")
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Only numbers allowed in the fields, please check:" & @CRLF & @CRLF & "- Desktop width (minus)" & @CRLF & "- Desktop height (minus)")
    _Settings()
 EndIf
 
 ; Check checkbox options
-If $iCheckboxAutostart = 1 Or $iCheckboxAutostart = 4 And $iCheckboxUpdate = 1 Or $iCheckboxUpdate = 4 And $iCheckboxTextToSpeech = 1 Or $iCheckboxTextToSpeech = 4 And $iCheckboxPlayAlarm = 1 Or $iCheckboxPlayAlarm = 4 And $iCheckboxCgmUpdate = 1 Or $iCheckboxCgmUpdate = 4 Then
+If StringRegExp($iCheckboxAutostart & $iCheckboxUpdate & $iCheckboxTextToSpeech & $iCheckboxPlayAlarm & $iCheckboxTrayTip & $iCheckboxCgmUpdate, '1|4') Then
+   _DebugOut($sDebugInfo & "Checkbox options ok")
 Else
    _DebugOut($sDebugInfo & "Only number 1 (on) or 4 (off) for checkboxes allowed")
    ShellExecute(@ScriptDir & "\" & $sFileSettings)
@@ -152,7 +159,7 @@ EndIf
 
 ; Check GitHub-Account
 Local $iCheckGithub = StringRegExp($sInputGithubAccount, '^[A-Za-z0-9_-]{3,15}$')
-If $iCheckGithub = 0 And $iCheckboxCgmUpdate = 1 Then
+If $iCheckGithub == 0 And $iCheckboxCgmUpdate == 1 Then
    _DebugOut($sDebugAction & "Wrong GitHub Username")
    _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Wrong GitHub Username!" & @CRLF & @CRLF & "Example:" & @CRLF & "https://github.com/USERNAME" & @CRLF & @CRLF & "For no update check:" & @CRLF & "Disable the option " & $sIniTitleCgmUpdate & "!")
    _Settings()
@@ -236,8 +243,12 @@ Func _Tooltip()
    _DebugReportVar("$iIntervalRound", $iIntervalRound)
 
    ; Check new glucose updates
+   Local $bUpdateWait = False
    If $iMin == $iIntervalRound * $iMinInterval - $iMinInterval And $fMin <= $iIntervalRound * $iMinInterval - $iMinInterval + $fMinIntervalCheck Then
       $i_MsWait = 1000
+      $bUpdateWait = True
+   Else
+      $bUpdateWait = False
    EndIf
 
    ; After 0 min read normal wait
@@ -254,9 +265,13 @@ Func _Tooltip()
    Local $sStatus = StringRegExpReplace($sReturnedPageJsonStatus, '.*"status":("|)([^"]+)("|),.*', '\2')
    _DebugReportVar("$sStatus", $sStatus)
 
+   ; Name for nightscout
+   Local $sCustomTitle = StringRegExpReplace($sReturnedPageJsonStatus, '.*"customTitle":("|)([^"]+)("|),.*', '\2')
+   _DebugReportVar("$sCustomTitle", $sCustomTitle)
+
    ; Settings check for json: units
-   Local $sReadOption = StringRegExpReplace($sReturnedPageJsonStatus, '.*"units":("|)([^"]+)("|),.*', '\2')
-   _DebugReportVar("$sReadOption", $sReadOption)
+   Local $sUnit = StringRegExpReplace($sReturnedPageJsonStatus, '.*"units":("|)([^"]+)("|),.*', '\2')
+   _DebugReportVar("$sUnit", $sUnit)
 
    ; Alarm settings check for json: alarm bgLow
    Local $iAlertLow = Int(StringRegExpReplace($sReturnedPageJsonStatus, '.*"bgLow":("|)([^"]+)("|),.*', '\2'))
@@ -304,7 +319,7 @@ Func _Tooltip()
 
    ; Check mmol/l option
    Local $fCalcGlucose, $fGlucoseMmol, $fLastGlucoseMmol, $i_fGlucoseResult, $i_fLastGlucoseResult, $fGlucoseResultTmp, $fLastGlucoseResultTmp
-   If $sReadOption = "mmol" Then
+   If $sUnit == "mmol" Then
       ; Calculate mmol/l
       $fCalcGlucose = Number(18.01559 * 10 / 10, 3) ; 3=the result is double
       $fGlucoseMmol = Number($iGlucose / $fCalcGlucose, 3) ; 3=the result is double
@@ -344,7 +359,7 @@ Func _Tooltip()
    If $iGlucose <= $iAlertLow Or $iGlucose >= $iAlertHigh Or $iGlucose <= $iAlertLowUrgent Or $iGlucose >= $iAlertHighUrgent Then
       $iAlarm = 2 ;=Warning icon
       ; Play alarm from Nightscout (alarm.mp3)
-      If $iCheckboxPlayAlarm = 1 Then
+      If $iCheckboxPlayAlarm == 1 Then
          If $iMin == 0 Then
             SoundPlay($sInputDomain & "/audio/alarm.mp3", 0)
          EndIf
@@ -352,20 +367,37 @@ Func _Tooltip()
    Else
       $iAlarm = 1 ;=Info icon
    EndIf
-   If $iAlertLow = 0 And $iAlertHigh = 0 And $iAlertLowUrgent = 0 And $iAlertHighUrgent = 0 Then
+   If $iAlertLow == 0 And $iAlertHigh == 0 And $iAlertLowUrgent == 0 And $iAlertHighUrgent == 0 Then
       $iAlarm = 0 ;=None icon
    EndIf
 
    ; Check connections to Nightscout
    Local $iCheckGlucose = StringRegExp($iGlucose, '^([0-9]{1,3})')
    ; Check values for mmol or mg/dl
-   Local $iCheckReadOptionValues = StringRegExp($sReadOption, '(mmol|mg\/dl)')
+   Local $iCheckReadOptionValues = StringRegExp($sUnit, '(mmol|mg\/dl)')
 
-   ; Tooltip
-   If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
-      ToolTip($sWrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $sWrongMsg, 3, 2)
+   ; TrayTip variables
+   Local $sTrayTipMsg = $i_fGlucoseResult & " " & $sUnit & "  •  " & $sTrend & "  •  " & $s_fDelta & "  •  " & $iMin & " min"
+
+   If $iCheckboxTrayTip == 1 Then
+      If $iMin == 0 Then
+         _DebugOut($sDebugInfo & "Display -> TrayTip")
+         If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
+            TrayTip($sCustomTitle, $sWrongMsg, 10, $iAlarm + $TIP_NOSOUND)
+         Else
+            TrayTip($sCustomTitle, $sTrayTipMsg, 10, $iAlarm + $TIP_NOSOUND)
+         EndIf
+      EndIf
+      If $iMin == $iMinInterval * $iIntervalRound - $iMinInterval And $iMin <> 0 And $bUpdateWait == False Then
+         TrayTip($sCustomTitle, $sTrayTipMsg, 10, 2 + $TIP_NOSOUND)
+      EndIf
    Else
-      ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
+      _DebugOut($sDebugInfo & "Display -> ToolTip")
+      If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
+         ToolTip($sWrongMsg, @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, $sWrongMsg, 3, 2)
+      Else
+         ToolTip("   " & $s_fDelta & " " & @CR & "   " & $iMin & " min", @DesktopWidth - $sInputDesktopWidth, @DesktopHeight - $sInputDesktophHeight, "   " & $i_fGlucoseResult & " " & $sTrend & "  ", $iAlarm, 2)
+      EndIf
    EndIf
 
    ; Check TTS option and locals, globals
@@ -373,13 +405,12 @@ Func _Tooltip()
    Local $sGlucoseTextToSpeech = StringReplace($i_fGlucoseResult, ".", ",")
    Global $sUpdateWindowTitle = "Nightscout-Update"
 
-   ; Sleep
    ; Check upload to Nightscout
    If $iDate == $iLastDate And StringRegExp($iDate & $iLastDate, '([0-9]{13})') Then
       _DebugOut($sDebugInfo & "More than one upload method selected")
       _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
    EndIf
-   If $iCheckboxTextToSpeech = 1 Then
+   If $iCheckboxTextToSpeech == 1 And _GetMute() == 1 Then
       ; Read every zero minutes
       If $iMin == 0 Then
          If StringInStr($sGlucoseTextToSpeech, "-") Then
@@ -389,7 +420,10 @@ Func _Tooltip()
          EndIf
       EndIf
    EndIf
+
+   ; Sleep
    Sleep($i_MsWait)
+
 ;~       ; Remove temporary files after 60 seconds
 ;~       Local $sFileProc = "proc.cmd"
 ;~       If FileExists($sFileProc) Then
@@ -397,12 +431,12 @@ Func _Tooltip()
 ;~          FileDelete($sFileProc)
 ;~       EndIf
    ; Check for a cgm-remote-monitor update when the update window not exists (Important: API update 60 requests per hour!)
-   If $i_MsWait = 60000 Then
+   If $i_MsWait == 60000 Then
       ; Check for app updates
-      If $iCheckboxUpdate = 1 Then
+      If $iCheckboxUpdate == 1 Then
          CheckUpdate($sTitle & (@Compiled ? ".exe" : ".au3"), $sVersion, "https://raw.githubusercontent.com/Matze1985/GlucoTT/master/Update/CheckUpdate.txt")
       EndIf
-      If $iCheckboxCgmUpdate = 1 Then
+      If $iCheckboxCgmUpdate == 1 Then
          If Not WinExists($sUpdateWindowTitle) Then
             _CgmUpdateCheck()
          EndIf
@@ -475,7 +509,9 @@ Func _Settings()
    GUICtrlSetState($hCheckboxLog, $iCheckboxLog)
    Local $hCheckboxPlayAlarm = GUICtrlCreateCheckbox($sIniTitlePlayAlarm, 230, 60, 80, 20)
    GUICtrlSetState($hCheckboxPlayAlarm, $iCheckboxPlayAlarm)
-   $hDonate = GUICtrlCreateButton("Donate", 230, 80, 80, 40)
+   Local $hCheckboxTrayTip = GUICtrlCreateCheckbox($sIniTitleTrayTip, 230, 80, 80, 20)
+   GUICtrlSetState($hCheckboxTrayTip, $iCheckboxTrayTip)
+   $hDonate = GUICtrlCreateButton("Donate", 230, 100, 80, 35)
    Local $hCheckboxCgmUpdate = GUICtrlCreateCheckbox($sIniTitleCgmUpdate, 10, 120, 145, 20)
    GUICtrlSetState($hCheckboxCgmUpdate, $iCheckboxCgmUpdate)
    Local $hInputGithubAccount = GUICtrlCreateInput($sInputGithubAccount, 10, 140, 300, 20)
@@ -495,6 +531,7 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, GUICtrlRead($hCheckboxTextToSpeech))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleLog, GUICtrlRead($hCheckboxLog))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, GUICtrlRead($hCheckboxPlayAlarm))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTrayTip, GUICtrlRead($hCheckboxTrayTip))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleCgmUpdate, GUICtrlRead($hCheckboxCgmUpdate))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, GUICtrlRead($hInputGithubAccount))
             _Restart()
@@ -529,10 +566,10 @@ Func _CgmUpdateCheck()
 
    Local $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, "https://api.github.com")
 
-   If $iCheckVersionDev = 1 Then
+   If $iCheckVersionDev == 1 Then
       $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
    EndIf
-   If $iCheckVersionRelease = 1 Then
+   If $iCheckVersionRelease == 1 Then
       $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
    EndIf
 
@@ -556,15 +593,15 @@ Func _CgmUpdateCheck()
    EndIf
 
    Local $iCheckMerge = StringRegExp($sReturnedCgmUpdateCompare, $sCheckGithubStatus)
-   If $iCheckMerge = 1 Then
+   If $iCheckMerge == 1 Then
       $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sIniTitleCgmUpdate, $sUpdateWindowMsg)
       Switch $iRetCheckUpdateValue
          Case 1
-            If $iCheckVersionDev = 1 Then
+            If $iCheckVersionDev == 1 Then
                ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
                $sBranch = "dev"
             EndIf
-            If $iCheckVersionRelease = 1 Then
+            If $iCheckVersionRelease == 1 Then
                ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
                $sBranch = "master"
             EndIf
