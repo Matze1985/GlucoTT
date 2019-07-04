@@ -9,7 +9,7 @@ A simple discrete glucose tooltip/traytip for Nightscout under Windows
 ![Example 1](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_1.PNG) ![Example 2](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_2.PNG) ![Example 3](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_3.PNG)
 
 ## TrayTip
-![Example 7](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_7.PNG)![Example 8](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_8.PNG)
+![Example 7](https://github.com/Matze1985/GlucoTT/raw/master/Screenshots/Example_7.png)![Example 8](https://github.com/Matze1985/GlucoTT/raw/master/Screenshots/Example_8.png)
 
 ## Settings
 ![Example 4](https://github.com/Matze1985/GlucoTT/blob/master/Screenshots/Example_4.PNG)
