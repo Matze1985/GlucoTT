@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=GlucoTT
-   #AutoIt3Wrapper_Res_Fileversion=3.1.0.0
+   #AutoIt3Wrapper_Res_Fileversion=3.1.1.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -383,7 +383,7 @@ Func _Tooltip()
       If $iMin == 0 Then
          _DebugOut($sDebugInfo & "Display -> TrayTip")
          If $iCheckReadOptionValues <> 1 Or $iCheckGlucose <> 1 Or $iCheckInet <> 1 Then
-            TrayTip($sCustomTitle, $sWrongMsg, 10, $iAlarm + $TIP_NOSOUND)
+            TrayTip($sCustomTitle, $sWrongMsg, 10, 3 + $TIP_NOSOUND)
          Else
             TrayTip($sCustomTitle, $sTrayTipMsg, 10, $iAlarm + $TIP_NOSOUND)
          EndIf

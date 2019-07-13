@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.1.1.0 (13 July, 2019)
+	Change: Changed error icon of traytip
+
 v3.1.0.0 (04 July, 2019)
 	Change: Fix mute bug
 	Change: Update glucose for traytip
