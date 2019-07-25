@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=GlucoTT
-   #AutoIt3Wrapper_Res_Fileversion=3.1.1.0
+   #AutoIt3Wrapper_Res_Fileversion=3.1.2.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -410,7 +410,8 @@ Func _Tooltip()
       _DebugOut($sDebugInfo & "More than one upload method selected")
       _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please use one upload method to Nightscout!" & @CRLF & @CRLF & "Check your application settings, which transmits the values!" & @CRLF & @CRLF & "Otherwise, " & $sTitle & " does not work properly!")
    EndIf
-   If $iCheckboxTextToSpeech == 1 And _GetMute() == 1 Then
+   _DebugReportVar("_GetMute()", _GetMute())
+   If $iCheckboxTextToSpeech == 1 And _GetMute() == 0 Then
       ; Read every zero minutes
       If $iMin == 0 Then
          If StringInStr($sGlucoseTextToSpeech, "-") Then
