@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=GlucoTT
-   #AutoIt3Wrapper_Res_Fileversion=3.1.2.0
+   #AutoIt3Wrapper_Res_Fileversion=3.2.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -558,23 +558,23 @@ Func _CgmUpdateCheck()
    Local $sUpdateWindowMsg = "Update on GitHub available!"
    Local $sWndGithubTitle = "cgm-remote-monitor"
    Local $sUpdateWindowMsgHelp = "Help for update on GitHub!" & @CRLF & @CRLF & "1. Login " & @CRLF & "2. Create pull request" & @CRLF & "3. Merge and confirm pull request" & @CRLF & "4. Deploy branch on Heruko or Azure" & @CRLF & "5. Close this window, when finished!"
-   Local $iCheckVersionDev = StringRegExp($sNightscoutVersion, "(dev|rc)")
-   _DebugReportVar("$iCheckVersionDev", $iCheckVersionDev)
-   Local $iCheckVersionRelease = StringRegExp($sNightscoutVersion, "(release)")
-   _DebugReportVar("$iCheckVersionRelease", $iCheckVersionRelease)
+   Local $sGithubApiUrl = "https://api.github.com"
    Local $iCheckGithubAccount = StringRegExp($sInputGithubAccount, "(" & $sIniDefaultGithubAccount & ")")
    _DebugReportVar("$iCheckGithubAccount", $iCheckGithubAccount)
 
-   Local $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, "https://api.github.com")
+   ; Repo informations --> https://api.github.com/repos/<User>/cgm-remote-monitor
+   Local $hConnectCgmToRepo = _WinHttpConnect($hOpen, $sGithubApiUrl)
+   $hRequestCgmToRepo = _WinHttpSimpleSendSSLRequest($hConnectCgmToRepo, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor")
+   Local $sReturnedCgmToRepo = _WinHttpSimpleReadData($hRequestCgmToRepo)
+   Local $sGithubDefaultBranch = _ArrayToString(StringRegExp($sReturnedCgmToRepo, 'default_branch":"(.*?)","parent"', 1))
+   _DebugReportVar("$sGithubDefaultBranch", $sGithubDefaultBranch)
+   _WinHttpCloseHandle($hConnectCgmToRepo)
 
-   If $iCheckVersionDev == 1 Then
-      $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
-   EndIf
-   If $iCheckVersionRelease == 1 Then
-      $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
-   EndIf
-
+   ; Check update for branch
+   Local $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, $sGithubApiUrl)
+   Local $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:" & $sGithubDefaultBranch)
    Local $sReturnedCgmUpdateCompare = _WinHttpSimpleReadData($hRequestCgmUpdateCompare)
+   _WinHttpCloseHandle($hConnectCgmUpdateCompare)
 
    ; Check valid GitHub-User with repository
    If StringInStr($sReturnedCgmUpdateCompare, '"message":"Not Found"') Then
@@ -598,14 +598,7 @@ Func _CgmUpdateCheck()
       $iRetCheckUpdateValue = _ExtMsgBox($EMB_ICONINFO, $sUpdateWindowButtons, $sIniTitleCgmUpdate, $sUpdateWindowMsg)
       Switch $iRetCheckUpdateValue
          Case 1
-            If $iCheckVersionDev == 1 Then
-               ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:dev")
-               $sBranch = "dev"
-            EndIf
-            If $iCheckVersionRelease == 1 Then
-               ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/master...nightscout:master")
-               $sBranch = "master"
-            EndIf
+            ShellExecute("https://github.com/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/" & $sGithubDefaultBranch & "...nightscout:" & $sGithubDefaultBranch)
             _ExtMsgBox($EMB_ICONINFO, "Close", $sIniTitleCgmUpdate, $sUpdateWindowMsgHelp)
             If StringRegExp($sInputDomain, $sCheckUrlAzure) Then
                If WinExists($sWndGithubTitle) Then
@@ -631,12 +624,11 @@ Func _CgmUpdateCheck()
                   Sleep(500)
                EndIf
             EndIf
-            _ExtMsgBox($EMB_ICONINFO, "Close", "Deploy-Nightscout-Update", "Finally, please open " & $sDeployOn & " and login and choose the " & $sBranch & " branch for deploy!")
+            _ExtMsgBox($EMB_ICONINFO, "Close", "Deploy-Nightscout-Update", "Finally, please open " & $sDeployOn & " and login and choose the " & $sGithubDefaultBranch & " branch for deploy!")
          Case 2
             ;Exit
       EndSwitch
    EndIf
    _DebugReportVar("$sReturnedCgmUpdateCompare", $sReturnedCgmUpdateCompare)
    _DebugReportVar("$iCheckMerge", $iCheckMerge)
-   _WinHttpCloseHandle($hConnectCgmUpdateCompare)
 EndFunc
