@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=GlucoTT
-   #AutoIt3Wrapper_Res_Fileversion=3.2.0.0
+   #AutoIt3Wrapper_Res_Fileversion=3.2.5.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -572,7 +572,7 @@ Func _CgmUpdateCheck()
 
    ; Check update for branch
    Local $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, $sGithubApiUrl)
-   Local $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/dev...nightscout:" & $sGithubDefaultBranch)
+   Local $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/" & $sGithubDefaultBranch & "...nightscout:" & $sGithubDefaultBranch)
    Local $sReturnedCgmUpdateCompare = _WinHttpSimpleReadData($hRequestCgmUpdateCompare)
    _WinHttpCloseHandle($hConnectCgmUpdateCompare)
 

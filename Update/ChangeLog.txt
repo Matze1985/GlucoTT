@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.2.5.0 (14 November, 2019)
+	Change: Fix update bug for hard coded "dev" entry
+
 v3.2.0.0 (13 November, 2019)
 	Change: Changed update logic for branch
 
