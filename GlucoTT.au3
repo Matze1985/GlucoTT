@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=GlucoTT
-   #AutoIt3Wrapper_Res_Fileversion=3.2.5.0
+   #AutoIt3Wrapper_Res_Fileversion=3.2.8.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -566,14 +566,18 @@ Func _CgmUpdateCheck()
    Local $hConnectCgmToRepo = _WinHttpConnect($hOpen, $sGithubApiUrl)
    $hRequestCgmToRepo = _WinHttpSimpleSendSSLRequest($hConnectCgmToRepo, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor")
    Local $sReturnedCgmToRepo = _WinHttpSimpleReadData($hRequestCgmToRepo)
-   Local $sGithubDefaultBranch = _ArrayToString(StringRegExp($sReturnedCgmToRepo, 'default_branch":"(.*?)","parent"', 1))
+   _DebugReportVar("$sReturnedCgmToRepo", $sReturnedCgmToRepo)
+   Local $sGithubDefaultBranch = StringRegExpReplace(_ArrayToString(StringRegExp($sReturnedCgmToRepo, '"default_branch":(.*?),', 1)), ' |"', "") ; default branch
    _DebugReportVar("$sGithubDefaultBranch", $sGithubDefaultBranch)
    _WinHttpCloseHandle($hConnectCgmToRepo)
 
    ; Check update for branch
+   ; Example: https://github.com/<User>/cgm-remote-monitor/compare/dev...nightscout:dev
+   ; Example: https://api.github.com/repos/<User>/cgm-remote-monitor/compare/dev...nightscout:dev
    Local $hConnectCgmUpdateCompare = _WinHttpConnect($hOpen, $sGithubApiUrl)
    Local $hRequestCgmUpdateCompare = _WinHttpSimpleSendSSLRequest($hConnectCgmUpdateCompare, Default, "/repos/" & $sInputGithubAccount & "/cgm-remote-monitor/compare/" & $sGithubDefaultBranch & "...nightscout:" & $sGithubDefaultBranch)
    Local $sReturnedCgmUpdateCompare = _WinHttpSimpleReadData($hRequestCgmUpdateCompare)
+   _DebugReportVar("$sReturnedCgmUpdateCompare", $sReturnedCgmUpdateCompare)
    _WinHttpCloseHandle($hConnectCgmUpdateCompare)
 
    ; Check valid GitHub-User with repository

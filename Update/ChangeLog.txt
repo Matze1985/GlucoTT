@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.2.8.0 (07 December, 2019)
+	Change: Fix regex for "default_branch" name
+
 v3.2.5.0 (14 November, 2019)
 	Change: Fix update bug for hard coded "dev" entry
 
