@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=GlucoTT
-   #AutoIt3Wrapper_Res_Fileversion=3.2.8.0
+   #AutoIt3Wrapper_Res_Fileversion=3.5.0.0
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -50,6 +50,10 @@ Local $sIniDefaultNightscout = "https://<account>.herokuapp.com"
 Local $sIniTitleCgmUpdate = "GitHub-Nightscout-Update"
 Local $sIniTitleGithubAccount = "GitHub-User"
 Local $sIniDefaultGithubAccount = "Input a GitHub-User to update cgm-remote-monitor"
+Local $sIniTitleCheckboxToken = "Nightscout-Token"
+Local $sIniTitleInputToken = "Token of Nightscout"
+Local $iIniDefaultCheckboxToken = 4
+Local $sIniDefaultInputToken = "Token for Nightscout"
 Local $iIniDefaultCheckboxCgmUpdate = 4
 Local $sIniTitleDesktopWidth = "Desktop width (minus)"
 Local $iIniDefaultDesktopWidth = 43
@@ -71,6 +75,8 @@ Local $iIniDefaultCheckboxTrayTip = 4
 Local $sInputDomain = IniRead($sFileFullPath, $sIniCategory, $sIniTitleNightscout, $sIniDefaultNightscout)
 Local $sInputDesktopWidth = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopWidth, $iIniDefaultDesktopWidth)
 Local $sInputDesktophHeight = IniRead($sFileFullPath, $sIniCategory, $sIniTitleDesktopHeight, $iIniDefaultDesktopHeight)
+Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, $sIniDefaultGithubAccount)
+Local $sInputToken = IniRead($sFileFullPath, $sIniCategory, $sIniTitleInputToken, $sIniDefaultInputToken)
 Local $iCheckboxAutostart = IniRead($sFileFullPath, $sIniCategory, $sIniTitleAutostart, $iIniDefaultCheckboxAutostart)
 Local $iCheckboxUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleUpdate, $iIniDefaultCheckboxUpdate)
 Local $iCheckboxTextToSpeech = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTextToSpeech, $iIniDefaultCheckboxTextToSpeech)
@@ -78,7 +84,7 @@ Local $iCheckboxLog = IniRead($sFileFullPath, $sIniCategory, $sIniTitleLog, $iIn
 Local $iCheckboxPlayAlarm = IniRead($sFileFullPath, $sIniCategory, $sIniTitlePlayAlarm, $iIniDefaultCheckboxPlayAlarm)
 Local $iCheckboxTrayTip = IniRead($sFileFullPath, $sIniCategory, $sIniTitleTrayTip, $iIniDefaultCheckboxTrayTip)
 Local $iCheckboxCgmUpdate = IniRead($sFileFullPath, $sIniCategory, $sIniTitleCgmUpdate, $iIniDefaultCheckboxCgmUpdate)
-Local $sInputGithubAccount = IniRead($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, $sIniDefaultGithubAccount)
+Local $iCheckboxToken = IniRead($sFileFullPath, $sIniCategory, $sIniTitleCheckboxToken, $iIniDefaultCheckboxToken)
 
 ; Start displaying debug environment
 Local $sDebugAction = "@@ Debug : Action -> "
@@ -147,7 +153,7 @@ If $iCheckNumbers == 0 Then
 EndIf
 
 ; Check checkbox options
-If StringRegExp($iCheckboxAutostart & $iCheckboxUpdate & $iCheckboxTextToSpeech & $iCheckboxPlayAlarm & $iCheckboxTrayTip & $iCheckboxCgmUpdate, '1|4') Then
+If StringRegExp($iCheckboxAutostart & $iCheckboxUpdate & $iCheckboxTextToSpeech & $iCheckboxPlayAlarm & $iCheckboxTrayTip & $iCheckboxCgmUpdate & $iCheckboxToken, '1|4') Then
    _DebugOut($sDebugInfo & "Checkbox options ok")
 Else
    _DebugOut($sDebugInfo & "Only number 1 (on) or 4 (off) for checkboxes allowed")
@@ -174,12 +180,46 @@ EndFunc
 
 Func _Tooltip()
    ; API-Pages
-   Local $sPageJsonEntries = "/api/v1/entries/sgv.json?count=2"
-   Local $sPageJsonStatus = "/api/v1/status.json"
+   Local $sApiSecret
+   Local $sPageJsonEntries = "api/v1/entries/sgv.json?count=2"
+   Local $sPageJsonStatus = "api/v1/status.json"
+
+   ; Check checkbox of Token
+   If $iCheckboxToken <> 1 Then
+      $sApiSecret = ""
+   Else
+      $sApiSecret = "API-SECRET: " & $sInputToken
+   EndIf
 
    ; Initialize and get session handle and get connection handle
    Global $hOpen = _WinHttpOpen()
-   Local $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
+   Global $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
+
+   Local $hRequestJsonStatus = _WinHttpOpenRequest($hConnect, Default, $sPageJsonStatus)
+   _WinHttpAddRequestHeaders($hRequestJsonStatus, $sApiSecret)
+   Local $hRequestJsonEntries = _WinHttpOpenRequest($hConnect, Default, $sPageJsonEntries)
+   _WinHttpAddRequestHeaders($hRequestJsonEntries, $sApiSecret)
+
+   ; Send request
+   _WinHttpSendRequest($hRequestJsonStatus)
+   _WinHttpSendRequest($hRequestJsonEntries)
+
+   ; Wait for the response
+   _WinHttpReceiveResponse($hRequestJsonStatus)
+   _WinHttpReceiveResponse($hRequestJsonEntries)
+
+   ; Read RequestSSL
+   Local $sReturnedPageJsonEntries = _WinHttpSimpleReadData($hRequestJsonEntries)
+   Local $sReturnedPageJsonStatus = _WinHttpSimpleReadData($hRequestJsonStatus)
+
+   _DebugReportVar("$sReturnedPageJsonEntries", $sReturnedPageJsonEntries)
+   _DebugReportVar("$sReturnedPageJsonStatus", $sReturnedPageJsonStatus)
+
+   If StringInStr($sReturnedPageJsonEntries & $sReturnedPageJsonStatus, '"status":401,"message":"Unauthorized"') Then
+      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Please enable, insert or check your API-SECRET-Token!")
+      _Settings()
+   EndIf
+
    _DebugReportVar("$sInputDomain", $sInputDomain)
 
    ; Check connection
@@ -188,14 +228,6 @@ Func _Tooltip()
 
    ; Set wrong msg in tooltip
    Local $sWrongMsg = "✕"
-
-   ; Make a SimpleSSL request
-   Local $hRequestPageJsonEntriesSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonEntries)
-   Local $hRequestPageJsonStatusSSL = _WinHttpSimpleSendSSLRequest($hConnect, Default, $sPageJsonStatus)
-
-   ; Read RequestSSL
-   Local $sReturnedPageJsonEntries = _WinHttpSimpleReadData($hRequestPageJsonEntriesSSL)
-   Local $sReturnedPageJsonStatus = _WinHttpSimpleReadData($hRequestPageJsonStatusSSL)
 
    Local $iGlucose = Int(_ArrayToString(StringRegExp($sReturnedPageJsonEntries, '"sgv":([0-9]{1,3}),"', 1))) ; First array result
    _DebugReportVar("$iGlucose", $iGlucose)
@@ -444,8 +476,11 @@ Func _Tooltip()
       EndIf
    EndIf
 
-   ; Close WinHttp
+   ; Close handles
+   _WinHttpCloseHandle($hRequestJsonEntries)
+   _WinHttpCloseHandle($hRequestJsonStatus)
    _WinHttpCloseHandle($hConnect)
+   _WinHttpCloseHandle($hOpen)
 
 EndFunc
 
@@ -492,7 +527,7 @@ Func _Settings()
    _DebugOut($sDebugAction & "Settings -> Open")
    Local $hDLL = DllOpen("user32.dll")
    Local $hSave, $hDonate, $msg
-   GUICreate($sIniCategory, 320, 190, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
+   GUICreate($sIniCategory, 320, 230, @DesktopWidth / 2 - 160, @DesktopHeight / 2 - 45)
    GUICtrlCreateLabel($sIniTitleNightscout, 10, 5, 70)
    Local $hInputDomain = GUICtrlCreateInput($sInputDomain, 10, 20, 300, 20)
    GUICtrlCreateLabel($sIniTitleDesktopWidth, 10, 45, 140)
@@ -516,7 +551,10 @@ Func _Settings()
    Local $hCheckboxCgmUpdate = GUICtrlCreateCheckbox($sIniTitleCgmUpdate, 10, 120, 145, 20)
    GUICtrlSetState($hCheckboxCgmUpdate, $iCheckboxCgmUpdate)
    Local $hInputGithubAccount = GUICtrlCreateInput($sInputGithubAccount, 10, 140, 300, 20)
-   $hSave = GUICtrlCreateButton("Save", 10, 165, 300, 20)
+   Local $hCheckboxToken = GUICtrlCreateCheckbox($sIniTitleCheckboxToken, 10, 160, 145, 20)
+   GUICtrlSetState($hCheckboxToken, $iCheckboxToken)
+   Local $hInputToken = GUICtrlCreateInput($sInputToken, 10, 180, 300, 20)
+   $hSave = GUICtrlCreateButton("Save", 10, 205, 300, 20)
    GUISetState()
    $msg = 0
    While $msg <> $GUI_EVENT_CLOSE
@@ -535,6 +573,8 @@ Func _Settings()
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleTrayTip, GUICtrlRead($hCheckboxTrayTip))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleCgmUpdate, GUICtrlRead($hCheckboxCgmUpdate))
             IniWrite($sFileFullPath, $sIniCategory, $sIniTitleGithubAccount, GUICtrlRead($hInputGithubAccount))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleCheckboxToken, GUICtrlRead($hCheckboxToken))
+            IniWrite($sFileFullPath, $sIniCategory, $sIniTitleInputToken, GUICtrlRead($hInputToken))
             _Restart()
          Case $msg = $hDonate
             _DebugOut($sDebugAction & "Settings -> Donate")
@@ -583,8 +623,6 @@ Func _CgmUpdateCheck()
    ; Check valid GitHub-User with repository
    If StringInStr($sReturnedCgmUpdateCompare, '"message":"Not Found"') Then
       _DebugOut($sDebugInfo & 'GitHub-User has no repository "cgm-remote-monitor"')
-      _ExtMsgBox($MB_ICONERROR, $MB_OK, "Error", "Input a valid GitHub-User!" & @CRLF & "The cgm remote monitor repository must exist!")
-      _Settings()
    EndIf
 
    ; Write in variable $sDeployOn

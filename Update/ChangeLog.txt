@@ -1,6 +1,10 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.5.0.0 (04 April, 2020)
+	Add: Added API SECRET option
+	Change: Removed MsgBox of UpdateCheck
+
 v3.2.8.0 (07 December, 2019)
 	Change: Fix regex for "default_branch" name
 
