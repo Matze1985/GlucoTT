@@ -1,6 +1,9 @@
 ChangeLog
 
 Summarized history of the changes:
+v3.5.0.5 (04 April, 2020)
+	Add: Added domain for input with and without "http[s]" [User friendly]
+
 v3.5.0.0 (04 April, 2020)
 	Add: Added API SECRET option
 	Change: Removed MsgBox of UpdateCheck

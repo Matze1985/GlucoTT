@@ -2,7 +2,7 @@
    #AutoIt3Wrapper_Icon=Icon.ico
    #AutoIt3Wrapper_UseX64=n
    #AutoIt3Wrapper_Res_Description=GlucoTT
-   #AutoIt3Wrapper_Res_Fileversion=3.5.0.0
+   #AutoIt3Wrapper_Res_Fileversion=3.5.0.5
    #AutoIt3Wrapper_Res_LegalCopyright=Mathias Noack
    #AutoIt3Wrapper_Res_Language=1031
    #AutoIt3Wrapper_Run_Tidy=y
@@ -46,7 +46,7 @@ Local $sFileSettings = "Settings.ini"
 Local $sFileFullPath = $sFilePath & $sFileSettings
 Local $sIniCategory = "Settings"
 Local $sIniTitleNightscout = "Nightscout"
-Local $sIniDefaultNightscout = "https://<account>.herokuapp.com"
+Local $sIniDefaultNightscout = "<account>.herokuapp.com"
 Local $sIniTitleCgmUpdate = "GitHub-Nightscout-Update"
 Local $sIniTitleGithubAccount = "GitHub-User"
 Local $sIniDefaultGithubAccount = "Input a GitHub-User to update cgm-remote-monitor"
@@ -179,6 +179,7 @@ Func _Restart()
 EndFunc
 
 Func _Tooltip()
+
    ; API-Pages
    Local $sApiSecret
    Local $sPageJsonEntries = "api/v1/entries/sgv.json?count=2"
@@ -193,7 +194,7 @@ Func _Tooltip()
 
    ; Initialize and get session handle and get connection handle
    Global $hOpen = _WinHttpOpen()
-   Global $hConnect = _WinHttpConnect($hOpen, $sInputDomain)
+   Global $hConnect = _WinHttpConnect($hOpen, StringRegExpReplace($sInputDomain, "http[s]:\/\/", "")) ; Remove http[s]
 
    Local $hRequestJsonStatus = _WinHttpOpenRequest($hConnect, Default, $sPageJsonStatus)
    _WinHttpAddRequestHeaders($hRequestJsonStatus, $sApiSecret)
